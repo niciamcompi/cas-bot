@@ -28,9 +28,9 @@ code_quality_job:
     - uv run ruff check . --output-format=gitlab > gl-code-quality-report.json
   artifacts:
     reports:
-      codequality:  app/gl-code-quality-report.json
+      codequality:  gl-code-quality-report.json
     paths:
-      -  app/gl-code-quality-report.json
+      -  gl-code-quality-report.json
 
 
 test_job:
@@ -42,7 +42,7 @@ test_job:
   artifacts:
     when: always
     paths:
-      - app/junit.xml
+      - junit.xml
     reports:
-      junit: app/junit.xml
+      junit: junit.xml
   coverage: '/TOTAL.*? (100(?:\.0+)?%|[1-9]?\d(?:\.\d+)?%)$/'
