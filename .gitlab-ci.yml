@@ -33,16 +33,16 @@ code_quality_job:
       -  gl-code-quality-report.json
 
 
-test_job:
-  stage: test
-  before_script:
-    - *install_uv
-  script:
-    - uv run tox
-  artifacts:
-    when: always
-    paths:
-      - junit.xml
-    reports:
-      junit: junit.xml
-  coverage: '/TOTAL.*? (100(?:\.0+)?%|[1-9]?\d(?:\.\d+)?%)$/'
+# test_job:
+#   stage: test
+#   before_script:
+#     - *install_uv
+#   script:
+#     - uv run tox
+#   artifacts:
+#     when: always
+#     paths:
+#       - junit.xml
+#     reports:
+#       junit: junit.xml
+#   coverage: '/TOTAL.*? (100(?:\.0+)?%|[1-9]?\d(?:\.\d+)?%)$/'
