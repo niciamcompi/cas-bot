@@ -1,0 +1,48 @@
+default:
+  image: python:3.12
+
+stages:
+  - code_quality
+  - test
+
+
+.install_uv: &install_uv
+    - pip install uv 
+    - uv --version
+    - cd app 
+    - uv sync
+
+pre_commit_check_job:
+  stage: code_quality
+  before_script:
+    - *install_uv
+  script:
+    - uv run pre-commit run --all-files
+
+
+code_quality_job:
+  stage: code_quality
+  before_script:
+    - *install_uv
+  script:
+    - uv run ruff check . --output-format=gitlab > gl-code-quality-report.json
+  artifacts:
+    reports:
+      codequality:  app/gl-code-quality-report.json
+    paths:
+      -  app/gl-code-quality-report.json
+
+
+test_job:
+  stage: test
+  before_script:
+    - *install_uv
+  script:
+    - uv run tox
+  artifacts:
+    when: always
+    paths:
+      - app/junit.xml
+    reports:
+      junit: app/junit.xml
+  coverage: '/TOTAL.*? (100(?:\.0+)?%|[1-9]?\d(?:\.\d+)?%)$/'
