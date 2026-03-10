@@ -1,17 +1,19 @@
 default:
   image: python:3.12
 
+#we only specify two stages
 stages:
   - code_quality
   - test
 
-
+#install global dependencies
 .install_uv: &install_uv
     - pip install uv 
     - uv --version
     - cd app 
     - uv sync
 
+# job to run pre-commit checks
 pre_commit_check_job:
   stage: code_quality
   before_script:
@@ -19,7 +21,7 @@ pre_commit_check_job:
   script:
     - uv run pre-commit run --all-files
 
-
+# job to run ruff checks and generate a code quality report
 code_quality_job:
   stage: code_quality
   before_script:
