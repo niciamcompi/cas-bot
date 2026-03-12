@@ -1,0 +1,50 @@
+default:
+  image: python:3.12
+
+#we only specify two stages
+stages:
+  - code_quality
+  - test
+
+#install global dependencies
+.install_uv: &install_uv
+    - pip install uv 
+    - uv --version
+    - cd app 
+    - uv sync
+
+# job to run pre-commit checks
+pre_commit_check_job:
+  stage: code_quality
+  before_script:
+    - *install_uv
+  script:
+    - uv run pre-commit run --all-files
+
+# job to run ruff checks and generate a code quality report
+code_quality_job:
+  stage: code_quality
+  before_script:
+    - *install_uv
+  script:
+    - uv run ruff check . --output-format=gitlab > gl-code-quality-report.json
+  artifacts:
+    reports:
+      codequality:  gl-code-quality-report.json
+    paths:
+      -  gl-code-quality-report.json
+
+
+# test_job:
+#   stage: test
+#   before_script:
+#     - *install_uv
+#   script:
+#     - uv run tox
+#   artifacts:
+#     when: always
+#     paths:
+#       - junit.xml
+#     reports:
+#       junit: junit.xml
+#   coverage: '/TOTAL.*? (100(?:\.0+)?%|[1-9]?\d(?:\.\d+)?%)$/'
