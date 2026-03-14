@@ -14,7 +14,7 @@ class ChatResponse(BaseModel):
     reply: str
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat")
 def chat_endpoint(request: ChatRequest) -> ChatResponse:
     reply = chat(request.message)
     return ChatResponse(reply=reply)
