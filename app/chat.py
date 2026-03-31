@@ -17,5 +17,6 @@ def chat(user_message: str) -> str:
     response = llm.invoke(messages)
 
     history.append(response)
+    del history[:-10]
 
     return str(response.content)
