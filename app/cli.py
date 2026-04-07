@@ -2,11 +2,12 @@ import sys
 from typing import Optional
 
 from app.chat import chat
-from app.store import history, cas_data_engineering_context
+from app.store import cas_data_engineering_context, history
 
 
 class Colors:
     """ANSI color codes for terminal output."""
+
     BLUE = "\033[94m"
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
@@ -24,9 +25,13 @@ def print_banner():
     print(f"{Colors.RESET}")
     print(f"{Colors.GREEN}Course: {cas_data_engineering_context['program']['name']}")
     print(f"Semester: {cas_data_engineering_context['program']['semester']}")
-    print(f"Institution: {cas_data_engineering_context['program']['institution']}{Colors.RESET}")
+    print(
+        f"Institution: {cas_data_engineering_context['program']['institution']}{Colors.RESET}"
+    )
     print()
-    print(f"{Colors.YELLOW}Type 'help' for available commands or 'exit' to quit{Colors.RESET}")
+    print(
+        f"{Colors.YELLOW}Type 'help' for available commands or 'exit' to quit{Colors.RESET}"
+    )
     print("-" * 70)
     print()
 
@@ -47,12 +52,18 @@ def print_history():
     if not history:
         print(f"{Colors.YELLOW}No conversation history yet.{Colors.RESET}\n")
         return
-    
-    print(f"\n{Colors.BOLD}Conversation History ({len(history)} messages):{Colors.RESET}")
+
+    print(
+        f"\n{Colors.BOLD}Conversation History ({len(history)} messages):{Colors.RESET}"
+    )
     for i, msg in enumerate(history, 1):
         role = "User" if msg.__class__.__name__ == "HumanMessage" else "Assistant"
         color = Colors.BLUE if role == "User" else Colors.GREEN
-        content_preview = str(msg.content)[:100] + "..." if len(str(msg.content)) > 100 else str(msg.content)
+        content_preview = (
+            str(msg.content)[:100] + "..."
+            if len(str(msg.content)) > 100
+            else str(msg.content)
+        )
         print(f"{color}{i}. {role}:{Colors.RESET} {content_preview}")
     print()
 
@@ -65,7 +76,7 @@ def clear_history():
 
 def print_course_info():
     """Print course information."""
-    prog = cas_data_engineering_context['program']
+    prog = cas_data_engineering_context["program"]
     print(f"\n{Colors.BOLD}Course Information:{Colors.RESET}")
     print(f"  Name: {prog['name']}")
     print(f"  Semester: {prog['semester']}")
@@ -77,7 +88,7 @@ def print_course_info():
 def get_user_input() -> Optional[str]:
     """
     Get user input with proper prompt.
-    
+
     Returns:
         User input string or None if EOF/interrupt
     """
@@ -90,30 +101,30 @@ def get_user_input() -> Optional[str]:
 def process_command(user_input: str) -> bool:
     """
     Process special commands.
-    
+
     Args:
         user_input: User's input string
-        
+
     Returns:
         True if should exit, False otherwise
     """
     command = user_input.lower()
-    
+
     if command in ["exit", "quit", "q"]:
         return True
-    
+
     elif command == "help":
         print_help()
-    
+
     elif command in ["clear", "reset"]:
         clear_history()
-    
+
     elif command == "history":
         print_history()
-    
+
     elif command == "info":
         print_course_info()
-    
+
     else:
         # Not a command, process as chat message
         try:
@@ -121,34 +132,38 @@ def process_command(user_input: str) -> bool:
             print(f"{Colors.GREEN}Assistant:{Colors.RESET} {response}\n")
         except Exception as e:
             print(f"{Colors.RED}Error: {e}{Colors.RESET}\n")
-            print(f"{Colors.YELLOW}Please try again or type 'help' for available commands.{Colors.RESET}\n")
-    
+            print(
+                f"{Colors.YELLOW}Please try again or type 'help' for available commands.{Colors.RESET}\n"
+            )
+
     return False
 
 
 def main():
     """Main CLI loop."""
     print_banner()
-    
+
     try:
         while True:
             user_input = get_user_input()
-            
+
             # Handle EOF or interrupt
             if user_input is None:
                 print(f"\n{Colors.YELLOW}Exiting chatbot...{Colors.RESET}")
                 break
-            
+
             # Skip empty input
             if not user_input:
                 continue
-            
+
             # Process command or chat message
             should_exit = process_command(user_input)
             if should_exit:
-                print(f"{Colors.YELLOW}Thank you for using the CAS Data Engineering Chatbot!{Colors.RESET}")
+                print(
+                    f"{Colors.YELLOW}Thank you for using the CAS Data Engineering Chatbot!{Colors.RESET}"
+                )
                 break
-                
+
     except KeyboardInterrupt:
         print(f"\n{Colors.YELLOW}Interrupted. Exiting chatbot...{Colors.RESET}")
         sys.exit(0)
