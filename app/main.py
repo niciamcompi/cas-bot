@@ -1,6 +1,20 @@
-def main():
-    print("Hello from cas-bot!")
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+from app.chat import chat
+
+app = FastAPI()
 
 
-if __name__ == "__main__":
-    main()
+class ChatRequest(BaseModel):
+    message: str
+
+
+class ChatResponse(BaseModel):
+    reply: str
+
+
+@app.post("/chat")
+def chat_endpoint(request: ChatRequest) -> ChatResponse:
+    reply = chat(request.message)
+    return ChatResponse(reply=reply)

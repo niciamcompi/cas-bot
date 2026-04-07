@@ -29,10 +29,11 @@ code_quality_job:
   script:
     - uv run ruff check . --output-format=gitlab > gl-code-quality-report.json
   artifacts:
+    when: always
     reports:
-      codequality:  gl-code-quality-report.json
+      codequality:  app/gl-code-quality-report.json
     paths:
-      -  gl-code-quality-report.json
+      -  app/gl-code-quality-report.json
 
 
 # test_job:
