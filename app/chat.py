@@ -7,7 +7,6 @@ from app.store import config, history
 load_dotenv()
 
 
-
 def chat(user_message: str) -> str:
     llm = ChatOpenAI(
         model=config["model"],
