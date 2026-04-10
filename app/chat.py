@@ -1,8 +1,10 @@
-# Logic handling interaction with the llm
+from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from app.store import config, history
+
+load_dotenv()
 
 
 def chat(user_message: str) -> str:
