@@ -27,6 +27,3 @@ This project follows the **Git Flow** branching model:
 4. When the code in develop is ready to release, open a merge request into `main`
 5. If a critical bug is found in production, create a `hotfix/*` branch from `main` and merge the fix into both `main` and `develop`
 
-## Code / Architecture
-
-TODO: Will be documented as the project progresses.
