@@ -88,38 +88,38 @@ _Ausbrüche = Länder, die in den 12 Monaten davor unter der Schwelle lagen. 'Au
 
 | Land | Region | Risiko Ensemble | Elastic Net | Random Forest | Boosting |
 |---|---|---|---|---|---|
-| Uganda | Sub-Saharan Africa  | 0.075 | 0.070 | 0.073 | 0.082 |
-| Cote d'Ivoire | Sub-Saharan Africa  | 0.049 | 0.022 | 0.088 | 0.037 |
-| Oman | Middle East, North Africa, Afghanistan & Pakistan | 0.046 | 0.016 | 0.095 | 0.027 |
-| Peru | Latin America & Caribbean  | 0.038 | 0.030 | 0.057 | 0.028 |
-| Turkiye | Europe & Central Asia | 0.037 | 0.062 | 0.021 | 0.028 |
-| United States | North America | 0.034 | 0.025 | 0.050 | 0.025 |
-| Algeria | Middle East, North Africa, Afghanistan & Pakistan | 0.026 | 0.031 | 0.011 | 0.037 |
-| Nepal | South Asia | 0.025 | 0.014 | 0.050 | 0.010 |
-| Jordan | Middle East, North Africa, Afghanistan & Pakistan | 0.023 | 0.013 | 0.048 | 0.008 |
-| Kuwait | Middle East, North Africa, Afghanistan & Pakistan | 0.022 | 0.017 | 0.035 | 0.016 |
-| Djibouti | Middle East, North Africa, Afghanistan & Pakistan | 0.022 | 0.016 | 0.029 | 0.020 |
-| Argentina | Latin America & Caribbean  | 0.020 | 0.015 | 0.022 | 0.022 |
-| United Arab Emirates | Middle East, North Africa, Afghanistan & Pakistan | 0.020 | 0.012 | 0.022 | 0.026 |
-| Dominican Republic | Latin America & Caribbean  | 0.018 | 0.023 | 0.009 | 0.023 |
-| Spain | Europe & Central Asia | 0.016 | 0.014 | 0.026 | 0.008 |
+| Uganda | Sub-Saharan Africa  | 0.072 | 0.069 | 0.073 | 0.074 |
+| Cote d'Ivoire | Sub-Saharan Africa  | 0.051 | 0.023 | 0.088 | 0.041 |
+| Oman | Middle East, North Africa, Afghanistan & Pakistan | 0.046 | 0.016 | 0.095 | 0.026 |
+| Peru | Latin America & Caribbean  | 0.038 | 0.032 | 0.057 | 0.027 |
+| Turkiye | Europe & Central Asia | 0.038 | 0.066 | 0.021 | 0.028 |
+| United States | North America | 0.033 | 0.025 | 0.050 | 0.023 |
+| Algeria | Middle East, North Africa, Afghanistan & Pakistan | 0.026 | 0.031 | 0.011 | 0.035 |
+| Nepal | South Asia | 0.025 | 0.015 | 0.050 | 0.010 |
+| Jordan | Middle East, North Africa, Afghanistan & Pakistan | 0.023 | 0.014 | 0.048 | 0.008 |
+| Kuwait | Middle East, North Africa, Afghanistan & Pakistan | 0.023 | 0.018 | 0.035 | 0.016 |
+| Djibouti | Middle East, North Africa, Afghanistan & Pakistan | 0.022 | 0.017 | 0.029 | 0.020 |
+| Argentina | Latin America & Caribbean  | 0.020 | 0.017 | 0.022 | 0.022 |
+| Dominican Republic | Latin America & Caribbean  | 0.019 | 0.024 | 0.009 | 0.024 |
+| United Arab Emirates | Middle East, North Africa, Afghanistan & Pakistan | 0.019 | 0.013 | 0.022 | 0.022 |
+| Spain | Europe & Central Asia | 0.016 | 0.015 | 0.026 | 0.008 |
 
 ### Währungskrise - Frühwarnung (derzeit ruhige Länder)
 
 | Land | Region | Risiko Ensemble | Elastic Net | Random Forest | Boosting |
 |---|---|---|---|---|---|
-| Russian Federation | Europe & Central Asia | 0.060 | 0.012 | 0.112 | 0.055 |
-| Nigeria | Sub-Saharan Africa  | 0.043 | 0.022 | 0.057 | 0.048 |
-| Congo, Dem. Rep. | Sub-Saharan Africa  | 0.042 | 0.031 | 0.057 | 0.037 |
-| Turkiye | Europe & Central Asia | 0.036 | 0.013 | 0.049 | 0.046 |
-| Ghana | Sub-Saharan Africa  | 0.029 | 0.011 | 0.063 | 0.012 |
+| Russian Federation | Europe & Central Asia | 0.062 | 0.012 | 0.112 | 0.062 |
+| Nigeria | Sub-Saharan Africa  | 0.037 | 0.020 | 0.057 | 0.034 |
+| Congo, Dem. Rep. | Sub-Saharan Africa  | 0.037 | 0.028 | 0.057 | 0.025 |
+| Turkiye | Europe & Central Asia | 0.030 | 0.012 | 0.049 | 0.029 |
+| Ghana | Sub-Saharan Africa  | 0.028 | 0.011 | 0.063 | 0.011 |
 | Pakistan | Middle East, North Africa, Afghanistan & Pakistan | 0.026 | 0.013 | 0.058 | 0.007 |
 | Bulgaria | Europe & Central Asia | 0.026 | 0.007 | 0.045 | 0.025 |
-| Lebanon | Middle East, North Africa, Afghanistan & Pakistan | 0.025 | 0.014 | 0.050 | 0.010 |
-| Ethiopia | Sub-Saharan Africa  | 0.022 | 0.025 | 0.032 | 0.009 |
+| Lebanon | Middle East, North Africa, Afghanistan & Pakistan | 0.025 | 0.014 | 0.050 | 0.011 |
+| Ethiopia | Sub-Saharan Africa  | 0.022 | 0.024 | 0.032 | 0.010 |
+| Ukraine | Europe & Central Asia | 0.020 | 0.012 | 0.018 | 0.030 |
 | Mali | Sub-Saharan Africa  | 0.019 | 0.016 | 0.033 | 0.009 |
 | Zambia | Sub-Saharan Africa  | 0.019 | 0.016 | 0.030 | 0.013 |
-| Argentina | Latin America & Caribbean  | 0.019 | 0.018 | 0.032 | 0.008 |
-| United Arab Emirates | Middle East, North Africa, Afghanistan & Pakistan | 0.018 | 0.014 | 0.035 | 0.006 |
-| Ukraine | Europe & Central Asia | 0.018 | 0.012 | 0.018 | 0.025 |
-| Malawi | Sub-Saharan Africa  | 0.015 | 0.017 | 0.021 | 0.007 |
+| Argentina | Latin America & Caribbean  | 0.019 | 0.017 | 0.032 | 0.008 |
+| United Arab Emirates | Middle East, North Africa, Afghanistan & Pakistan | 0.018 | 0.014 | 0.035 | 0.005 |
+| Malawi | Sub-Saharan Africa  | 0.015 | 0.016 | 0.021 | 0.007 |

@@ -106,14 +106,16 @@ wiki_month <- function(m) {
   if (is.null(js)) stop("Wikipedia-API nicht erreichbar für ", format(m, "%Y-%m"))
   map_dfr(js$query$pages, function(pg) {
     if (isTRUE(pg$missing) || is.null(pg$revisions)) return(NULL)
-    d <- as.Date(sub("^Portal:Current events/", "", pg$title), "%Y %B %d")
+    # Datum sprachunabhängig parsen (kein %B: unter z. B. französischem Locale hiesse "April" "avril")
+    parts <- strsplit(sub("^Portal:Current events/", "", pg$title), " ", fixed = TRUE)[[1]]
+    d <- as.Date(sprintf("%s-%02d-%02d", parts[1], match(parts[2], month.name), as.integer(parts[3])))
     parse_day(pg$revisions[[1]]$slots$main$content, d)
   })
 }
 
 f_news_items <- file.path(DIR$proc, "news_items.rds")
 f_news <- file.path(DIR$proc, "news_monthly.rds")
-cache_dir <- file.path(DIR$raw, "wikinews"); dir.create(cache_dir, showWarnings = FALSE)
+cache_dir <- file.path(DIR$raw, "wikinews_v2"); dir.create(cache_dir, showWarnings = FALSE)   # v2: sprachunabhängige Datumswerte
 news_months <- seq(CFG$gdelt_start, month_floor(Sys.Date()), by = "month")
 log_msg("Wikipedia Current Events: %d Monate", length(news_months))
 items <- map_dfr(news_months, function(m) {
@@ -124,6 +126,9 @@ items <- map_dfr(news_months, function(m) {
   if (!is.null(d)) saveRDS(d, f)
   d
 })
+if (!nrow(items) || mean(is.na(items$date)) > 0.01)
+  stop("Wikipedia-Meldungen ohne gültiges Datum (", sum(is.na(items$date)), " von ", nrow(items),
+       "). Bitte den Ordner ", cache_dir, " löschen und neu starten.")
 log_msg("  %d Meldungen geparst (%s bis %s)", nrow(items), min(items$date), max(items$date))
 
 # Ländererkennung und Tonalität pro Meldung

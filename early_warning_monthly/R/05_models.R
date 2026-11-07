@@ -34,9 +34,19 @@ impute_fit <- function(tr, feats) {
 }
 country_folds <- function(iso, k = 5) { u <- unique(iso); f <- sample(rep_len(seq_len(k), length(u))); f[match(iso, u)] }
 
-fit_enet <- function(tr, feats) cv.glmnet(as.matrix(tr[feats]), tr$y, family = "binomial", alpha = 0.5,
-                                          foldid = country_folds(tr$iso3c), nlambda = 50)
-pred_enet <- function(fit, te, feats) as.numeric(predict(fit, as.matrix(te[feats]), s = "lambda.min", type = "response"))
+# Variablen ohne Varianz (z. B. fehlende Datenquelle) vorher entfernen
+usable <- function(tr, feats) feats[vapply(tr[feats], \(x) isTRUE(sd(x, na.rm = TRUE) > 0), TRUE)]
+fit_enet <- function(tr, feats) {
+  feats <- usable(tr, feats)
+  if (length(feats) < 2) { warning("Elastic Net: zu wenige variierende Variablen - verwende Basisrate"); return(list(base = mean(tr$y))) }
+  fit <- cv.glmnet(as.matrix(tr[feats]), tr$y, family = "binomial", alpha = 0.5,
+                   foldid = country_folds(tr$iso3c), nlambda = 50)
+  fit$feats <- feats; fit
+}
+pred_enet <- function(fit, te, feats) {
+  if (!is.null(fit$base)) return(rep(fit$base, nrow(te)))
+  as.numeric(predict(fit, as.matrix(te[fit$feats]), s = "lambda.min", type = "response"))
+}
 fit_rf <- function(tr, feats, importance = "none") ranger(x = tr[feats], y = factor(tr$y), probability = TRUE,
   num.trees = 300, min.node.size = 25, num.threads = CFG$threads, seed = 42, importance = importance)
 pred_rf <- function(fit, te, feats) predict(fit, te[feats])$predictions[, "1"]

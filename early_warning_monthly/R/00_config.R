@@ -7,6 +7,7 @@ suppressPackageStartupMessages({
   library(glmnet); library(ranger); library(gbm); library(pROC)
 })
 options(timeout = 3600, dplyr.summarise.inform = FALSE, warn = 1)
+invisible(Sys.setlocale("LC_TIME", "C"))   # Datumsformate unabhängig von der Systemsprache
 set.seed(42)
 
 CFG <- list(
