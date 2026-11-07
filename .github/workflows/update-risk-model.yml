@@ -1,0 +1,86 @@
+# Aktualisiert das Global Risk Model automatisch:
+# lädt World-Bank- und UN-Textdaten neu, rechnet alle Modelle und die Evaluation neu
+# und committet Bericht, Grafiken und Prognose zurück ins Repository.
+name: Update Global Risk Model
+
+on:
+  schedule:
+    - cron: "17 4 3 * *"     # monatlich am 3. um 04:17 UTC
+  workflow_dispatch:          # manueller Start über den Tab "Actions"
+
+permissions:
+  contents: write             # nötig, um die neuen Ergebnisse zu committen
+
+concurrency:
+  group: update-risk-model
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+      RISK_REFRESH: "1"       # alle Daten frisch laden
+    defaults:
+      run:
+        working-directory: global_risk_model
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true   # vorkompilierte Pakete -> schnelle Installation
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          packages: |
+            any::dplyr
+            any::tidyr
+            any::purrr
+            any::stringr
+            any::jsonlite
+            any::httr
+            any::Matrix
+            any::ggplot2
+            any::patchwork
+            any::glmnet
+            any::ranger
+            any::gbm
+            any::mgcv
+            any::pROC
+            any::irlba
+            any::tidytext
+            any::tokenizers
+            any::zoo
+
+      # Die UN-Reden-Kopie ist auf einen festen Commit fixiert -> zwischen Läufen cachen
+      - uses: actions/cache@v4
+        with:
+          path: global_risk_model/data/raw/ungdc_github
+          key: ungdc-github-d1f2d6f
+
+      - name: Modell neu rechnen
+        run: Rscript run_all.R
+
+      - name: Ergebnisse committen
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add -A output
+          if git diff --cached --quiet; then
+            echo "Keine Änderungen an den Ergebnissen."
+          else
+            git commit -m "Update global risk model ($(date -u +%Y-%m-%d))"
+            git push
+          fi
+
+      - name: Ergebnisse als Download bereitstellen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: risk-model-output
+          path: global_risk_model/output
+          retention-days: 30

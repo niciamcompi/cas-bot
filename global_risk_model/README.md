@@ -183,3 +183,19 @@ R/06_evaluation.R         Kennzahlen, Bootstrap, DeLong, Ranking
 R/07_report.R             Grafiken und output/report.md
 output/                   Bericht, Grafiken, CSV (Evaluation, Prognose)
 ```
+
+## Automatische Aktualisierung (GitHub Actions)
+
+Der Workflow `.github/workflows/update-risk-model.yml` rechnet das Modell **monatlich** (am 3., 04:17 UTC) komplett neu:
+Daten laden, Modelle trainieren, evaluieren und Bericht, Grafiken und Prognose zurück ins Repo committen.
+Ein Lauf dauert rund 10–15 Minuten. Das ist kostenlos: Öffentliche Repos haben unbegrenzte Minuten,
+private Repos 2'000 Gratisminuten pro Monat.
+
+Einrichten:
+1. Den Workflow in den **Default-Branch** mergen. Zeitgesteuerte Läufe startet GitHub nur von dort.
+2. Unter *Settings → Actions → General → Workflow permissions* „Read and write permissions“ aktivieren.
+3. Unter *Actions → Update Global Risk Model → Run workflow* einmal manuell testen.
+
+Die Ergebnisse jedes Laufs stehen zusätzlich 30 Tage als Download-Artefakt beim Lauf zur Verfügung.
+Den Rhythmus ändert man in der `cron`-Zeile. Häufiger als monatlich lohnt sich kaum, weil die Weltbank ihre Daten
+nur wenige Male pro Jahr aktualisiert.
