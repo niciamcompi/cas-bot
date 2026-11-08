@@ -2,3 +2,5 @@ data/
 run.log
 *.log
 .Rhistory
+.venv/
+__pycache__/

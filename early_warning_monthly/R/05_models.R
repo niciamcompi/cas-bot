@@ -13,6 +13,12 @@
 #   gbm_*            Gradient Boosting: Struktur | Struktur+News
 #   gbm_struct_long  Boosting nur Struktur, aber mit Trainingsdaten ab 2011 (ohne News-Beschränkung)
 #   ensemble         Mittel aus enet_full, rf_full, gbm_full
+#   rule             Faustregel: Logit mit EINER Variable (Konflikt: Tote der letzten 12 Monate,
+#                    Währung: Inflation) - der ehrliche Vergleichsmassstab
+#   *_zs             Foundation-Modelle zero-shot (TimesFM 3, Chronos-2, Moirai-2), ohne Training
+#   fm_stack         Kalibrierte Kombination der drei Foundation-Prognosen (Logit auf Trainingsdaten)
+#   *_hybrid         Elastic Net / Random Forest / Boosting mit Foundation-Prognosen als Zusatz-Features
+#   ensemble_hybrid  Mittel der drei Hybrid-Modelle
 # =============================================================================
 P <- readRDS(file.path(DIR$proc, "panel.rds"))
 STRUCT <- P$STRUCT; NEWS <- P$NEWS; FULL <- P$FULL
@@ -21,11 +27,15 @@ TARGETS <- list(
   conflict = list(y = "y_conflict", quiet = "quiet", last = P$last_ucdp,
                   state = function(d) as.numeric(d$c_deaths_3 >= log1p(CFG$conflict_thr)),
                   core = c("c_deaths_3", "c_deaths_12", "c_trend", "c_months_since", "c_region_3",
-                           "s_wgi_pv", "s_log_gdp_pc", "s_log_pop", "s_infant_mort", "m_infl_yoy")),
+                           "s_wgi_pv", "s_log_gdp_pc", "s_log_pop", "s_infant_mort", "m_infl_yoy"),
+                  rule = "c_deaths_12", fm = P$FM_C,
+                  hard = function(d) coalesce(d$c_deaths_12 > 0, FALSE)),          # schwierig: etwas Gewalt
   fx = list(y = "y_fx", quiet = "fx_quiet", last = P$last_fx_month,
             state = function(d) as.numeric(d$m_fx_chg3 >= 100 * log(1 + CFG$fx_thr) / 2),
             core = c("m_fx_chg3", "m_fx_chg12", "m_fx_vol12", "m_infl_yoy", "m_infl_chg3", "m_res_chg12",
-                     "m_fx_crisis12", "s_log_gdp_pc", "s_wgi_ge", "c_deaths_12"))
+                     "m_fx_crisis12", "s_log_gdp_pc", "s_wgi_ge", "c_deaths_12"),
+            rule = "m_infl_yoy", fm = P$FM_X,                                    # Inflation: klassischer Frühindikator
+            hard = function(d) coalesce(d$m_fx_chg12 > 5, FALSE))               # schwierig: >5 % Abwertung in 12 M.
 )
 
 impute_fit <- function(tr, feats) {
@@ -54,8 +64,12 @@ fit_gbm <- function(tr, feats) gbm.fit(x = as.data.frame(tr[feats]), y = tr$y, d
   n.trees = 500, interaction.depth = 3, shrinkage = 0.03, bag.fraction = 0.7, n.minobsinnode = 30, verbose = FALSE)
 pred_gbm <- function(fit, te, feats) predict(fit, as.data.frame(te[feats]), n.trees = 500, type = "response")
 
+qlogit <- function(p) qlogis(clamp(p, 1e-3, 1 - 1e-3))
 run_models <- function(tr, te, tr_long, tgt) {
-  imp <- impute_fit(tr_long, FULL); tr <- imp(tr); te <- imp(te); tr_long <- imp(tr_long)
+  FM <- tgt$fm; HYB <- c(FULL, FM)
+  # Foundation-Modelle zero-shot: Rohwahrscheinlichkeit, fehlende Werte -> Basisrate
+  zshot <- setNames(lapply(FM, \(f) coalesce(te[[f]], mean(tr$y))), paste0(sub("^fm[cx]_", "", FM), "_zs"))
+  imp <- impute_fit(tr_long, c(FULL, FM)); tr <- imp(tr); te <- imp(te); tr_long <- imp(tr_long)
   st_tr <- tgt$state(tr); st_te <- tgt$state(te)
   pers  <- tapply(tr$y, st_tr, mean)
   sc_mu <- vapply(tr[tgt$core], mean, 0); sc_sd <- pmax(vapply(tr[tgt$core], sd, 0), 1e-6)
@@ -74,6 +88,18 @@ run_models <- function(tr, te, tr_long, tgt) {
     gbm_struct_long = pred_gbm(fit_gbm(tr_long, STRUCT), te, STRUCT)
   )
   out$ensemble <- (out$enet_full + out$rf_full + out$gbm_full) / 3
+  # Faustregel: eine einzige Variable
+  rl <- suppressWarnings(glm(tr$y ~ tr[[tgt$rule]], family = binomial))
+  out$rule <- plogis(coef(rl)[1] + coef(rl)[2] * te[[tgt$rule]])
+  if (length(FM)) {
+    out <- c(out, zshot)
+    st <- suppressWarnings(glm(tr$y ~ ., family = binomial, data = as.data.frame(lapply(tr[FM], qlogit))))
+    out$fm_stack <- unname(predict(st, as.data.frame(lapply(te[FM], qlogit)), type = "response"))
+    out$enet_hybrid <- pred_enet(fit_enet(tr, HYB), te, HYB)
+    out$rf_hybrid   <- pred_rf(fit_rf(tr, HYB), te, HYB)
+    out$gbm_hybrid  <- pred_gbm(fit_gbm(tr, HYB), te, HYB)
+    out$ensemble_hybrid <- (out$enet_hybrid + out$rf_hybrid + out$gbm_hybrid) / 3
+  }
   out
 }
 
@@ -89,13 +115,14 @@ if (!file.exists(f_pred) || CFG$refresh) {
       tr_long <- filter(d, !is.na(y), mi <= mi(T) - CFG$horizon - 1)
       te      <- filter(d, !is.na(y), mi >= mi(T), mi < mi(T) + CFG$refit_every, mi <= last_obs)
       if (!nrow(te)) return(NULL)
+      hard_te <- tgt$hard(te)
       t0 <- Sys.time(); set.seed(mi(T))
       p  <- run_models(tr, te, tr_long, tgt)
       log_msg("  %-8s Refit %s: Train %d (lang %d), Test %d Monate x Länder, Ereignisse %d (%.0fs)", tname,
               format(T, "%Y-%m"), nrow(tr), nrow(tr_long), nrow(te), sum(te$y),
               as.numeric(difftime(Sys.time(), t0, units = "secs")))
       imap_dfr(p, \(v, m) tibble(target = tname, model = m, iso3c = te$iso3c, month = te$month,
-                                  y = te$y, quiet = te$quiet_now, p_clim = mean(tr$y),
+                                  y = te$y, quiet = te$quiet_now, hard = hard_te, p_clim = mean(tr$y),
                                   p = clamp(v, 1e-5, 1 - 1e-5)))
     })
   })
@@ -108,13 +135,22 @@ final <- imap(TARGETS, function(tgt, tname) {
   tr <- filter(d, !is.na(y), month >= CFG$train_start)
   now <- filter(d, month == max(month))          # jüngster Monat (Konfliktdaten), Makro fortgeschrieben
   if (tname == "fx") now <- filter(now, !is.na(m_fx_chg3))   # nur Länder mit aktuellen Wechselkursdaten
-  imp <- impute_fit(tr, FULL); tr <- imp(tr); nowi <- imp(now)
+  FM <- tgt$fm; HYB <- c(FULL, FM)
+  imp <- impute_fit(tr, HYB); tr <- imp(tr); nowi <- imp(now)
   fe <- fit_enet(tr, FULL); fr <- fit_rf(tr, FULL, importance = "permutation"); fg <- fit_gbm(tr, FULL)
+  watch <- now |> select(iso3c, country, region, month) |>
+    mutate(quiet = now[[tgt$quiet]],
+           p_enet = pred_enet(fe, nowi, FULL), p_rf = pred_rf(fr, nowi, FULL), p_gbm = pred_gbm(fg, nowi, FULL),
+           risk = (p_enet + p_rf + p_gbm) / 3)
+  imp_h <- NULL
+  if (length(FM)) {
+    he <- fit_enet(tr, HYB); hr <- fit_rf(tr, HYB, importance = "permutation"); hg <- fit_gbm(tr, HYB)
+    watch <- watch |> mutate(risk_hybrid = (pred_enet(he, nowi, HYB) + pred_rf(hr, nowi, HYB) + pred_gbm(hg, nowi, HYB)) / 3)
+    for (f in FM) watch[[sub("^fm[cx]_", "p_", f)]] <- now[[f]]
+    imp_h <- tibble(feature = names(hr$variable.importance), importance = hr$variable.importance) |> arrange(desc(importance))
+  }
   list(
-    watch = now |> select(iso3c, country, region, month) |>
-      mutate(quiet = now[[tgt$quiet]],
-             p_enet = pred_enet(fe, nowi, FULL), p_rf = pred_rf(fr, nowi, FULL), p_gbm = pred_gbm(fg, nowi, FULL),
-             risk = (p_enet + p_rf + p_gbm) / 3) |> arrange(desc(risk)),
+    watch = arrange(watch, desc(risk)), imp_hybrid = imp_h,
     imp_rf = tibble(feature = names(fr$variable.importance), importance = fr$variable.importance) |>
       arrange(desc(importance)))
 })

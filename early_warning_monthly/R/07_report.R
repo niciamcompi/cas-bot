@@ -3,18 +3,25 @@
 # =============================================================================
 FM <- readRDS(file.path(DIR$proc, "final_models.rds"))
 TLAB <- c(conflict = "Gewaltkonflikt (>= 25 Tote in 3 Monaten)", fx = "Währungskrise (>= 15 % Abwertung in 3 Monaten)")
-MLAB <- c(persistence = "Persistenz (naiv)", logit = "Logit (Kernvariablen)",
+MLAB <- c(persistence = "Persistenz (naiv)", rule = "Faustregel (1 Variable)", logit = "Logit (Kernvariablen)",
           enet_struct = "Elastic Net - Struktur", enet_news = "Elastic Net - nur News",
           enet_full = "Elastic Net - Struktur+News", rf_struct = "Random Forest - Struktur",
           rf_full = "Random Forest - Struktur+News", gbm_struct = "Boosting - Struktur",
           gbm_full = "Boosting - Struktur+News", gbm_struct_long = "Boosting - Struktur, Training ab 2011",
-          ensemble = "Ensemble (EN+RF+GBM, mit News)")
-FAM <- c(persistence = "Benchmark", logit = "Statistisch", enet_struct = "Regularisiert", enet_news = "Nur News",
-         enet_full = "Regularisiert", rf_struct = "Machine Learning", rf_full = "Machine Learning",
+          ensemble = "Ensemble (EN+RF+GBM, mit News)",
+          timesfm3_zs = "TimesFM 3 (zero-shot)", chronos2_zs = "Chronos-2 (zero-shot)", moirai2_zs = "Moirai-2 (zero-shot)",
+          fm_stack = "Foundation-Stack (kalibriert)", enet_hybrid = "Elastic Net - Hybrid (+Foundation)",
+          rf_hybrid = "Random Forest - Hybrid (+Foundation)", gbm_hybrid = "Boosting - Hybrid (+Foundation)",
+          ensemble_hybrid = "Ensemble - Hybrid (+Foundation)")
+FAM <- c(persistence = "Benchmark", rule = "Benchmark", logit = "Statistisch", enet_struct = "Regularisiert",
+         enet_news = "Nur News", enet_full = "Regularisiert", rf_struct = "Machine Learning", rf_full = "Machine Learning",
          gbm_struct = "Machine Learning", gbm_full = "Machine Learning", gbm_struct_long = "Machine Learning",
-         ensemble = "Ensemble")
+         ensemble = "Ensemble", timesfm3_zs = "Foundation (zero-shot)", chronos2_zs = "Foundation (zero-shot)",
+         moirai2_zs = "Foundation (zero-shot)", fm_stack = "Foundation (zero-shot)", enet_hybrid = "Hybrid",
+         rf_hybrid = "Hybrid", gbm_hybrid = "Hybrid", ensemble_hybrid = "Hybrid")
 FCOL <- c(Benchmark = "#8a8984", Statistisch = PAL[["aqua"]], Regularisiert = PAL[["blue"]],
-          `Nur News` = PAL[["orange"]], `Machine Learning` = PAL[["violet"]], Ensemble = PAL[["red"]])
+          `Nur News` = PAL[["orange"]], `Machine Learning` = PAL[["violet"]], Ensemble = PAL[["red"]],
+          `Foundation (zero-shot)` = PAL[["yellow"]], Hybrid = PAL[["magenta"]])
 cap <- sprintf("Quellen: UCDP GED/Candidate, World Bank GEM/WDI/WGI, Wikipedia Current Events. Out-of-sample %s bis %s, Neutraining alle %d Monate.",
                format(min(preds$month), "%m/%Y"), format(max(preds$month), "%m/%Y"), CFG$refit_every)
 res <- res |> mutate(label = MLAB[model], family = FAM[model], tlab = TLAB[target])
@@ -24,21 +31,25 @@ ord <- res |> filter(target == "conflict") |> arrange(auc_onset) |> pull(label)
 p1 <- ggplot(res, aes(y = factor(label, levels = ord), colour = family)) +
   geom_segment(aes(x = onset_lo, xend = onset_hi, yend = factor(label, levels = ord)), linewidth = 0.9, alpha = 0.55) +
   geom_point(aes(x = auc_onset), size = 2.8) +
+  geom_point(aes(x = auc_hard), shape = 4, size = 2.4, colour = INK$secondary) +
   geom_point(aes(x = auc), shape = 1, size = 2.4, colour = INK$secondary) +
-  facet_wrap(~tlab) + scale_colour_manual(values = FCOL) +
-  labs(x = "ROC-AUC  (● Ausbrüche in ruhigen Ländern, 95 %-KI   ○ alle Länder-Monate)", y = NULL,
+  facet_wrap(~tlab) + scale_colour_manual(values = FCOL) + guides(colour = guide_legend(nrow = 2)) +
+  labs(x = "ROC-AUC  (● Ausbrüche, 95 %-KI   × schwierige Fälle   ○ alle Länder-Monate)", y = NULL,
        title = "Wie gut erkennen die Modelle neue Krisen?", caption = cap) + theme_risk()
-save_fig(p1, "01_performance.png", 12, 6)
+save_fig(p1, "01_performance.png", 13, 8)
 
-# 2) Mehrwert der News
-ng <- news_gain |> mutate(method = c(enet = "Elastic Net", rf = "Random Forest", gbm = "Boosting")[method],
-                          metric = factor(metric, levels = unname(NEWS_METRICS)), tlab = TLAB[target])
-save_fig(ggplot(ng, aes(delta, method)) +
+# 2) Mehrwert: News, Foundation-Modelle, ML gegenüber Faustregel
+ng <- gains |> mutate(metric = factor(metric, levels = unname(NEWS_METRICS)), tlab = TLAB[target],
+                      what = paste0(block, ": ", method))
+save_fig(ggplot(ng, aes(delta, what)) +
   geom_vline(xintercept = 0, colour = INK$secondary, linewidth = 0.3) +
-  geom_segment(aes(x = lo, xend = hi, yend = method), colour = PAL[["orange"]], linewidth = 0.9, alpha = 0.6) +
-  geom_point(colour = PAL[["orange"]], size = 3) + facet_grid(tlab ~ metric, scales = "free_x") +
-  labs(x = "Veränderung durch News-Text: (Struktur+News) - Struktur, 95 %-KI", y = NULL,
-       title = "Was bringen die schnellen Nachrichtendaten?", caption = cap) + theme_risk(), "02_news_value.png", 12, 5.5)
+  geom_segment(aes(x = lo, xend = hi, yend = what, colour = block), linewidth = 0.9, alpha = 0.6) +
+  geom_point(aes(colour = block), size = 2.6) +
+  facet_grid(tlab ~ metric, scales = "free_x", labeller = labeller(tlab = label_wrap_gen(22))) +
+  scale_colour_manual(values = c(News = PAL[["orange"]], Foundation = PAL[["magenta"]],
+                                 `ML vs. Faustregel` = PAL[["red"]], `Foundation vs. Faustregel` = PAL[["yellow"]])) +
+  labs(x = "Differenz der AUC (mit minus ohne Baustein), 95 %-KI", y = NULL,
+       title = "Was bringt welcher Baustein?", caption = cap) + theme_risk(), "02_value_added.png", 13, 7.5)
 
 # 3) Kalibrierung Ensemble
 cal <- preds |> filter(model == "ensemble") |> group_by(target) |> mutate(bin = ntile(p, 10)) |>
@@ -111,11 +122,13 @@ md_table <- function(df, digits = 3) {
     apply(df, 1, \(r) paste0("| ", paste(r, collapse = " | "), " |")))
 }
 tab <- function(t) res |> filter(target == t) |> transmute(Rang = rank, Methode = label,
-  `AUC Ausbrüche` = auc_onset, `KI` = sprintf("%.2f-%.2f", onset_lo, onset_hi), `PR-AUC Ausbrüche` = pr_onset,
-  `Ausbrüche auf Liste` = sprintf("%d/%d", episodes_warned, onset_episodes), `Treffer Liste` = list_precision,
-  `AUC alle` = auc, Brier = brier, BSS = bss, `Kal.-Steigung` = cal_slope)
+  `AUC Ausbrüche` = auc_onset, `KI` = sprintf("%.2f-%.2f", onset_lo, onset_hi), `AUC schwierig` = auc_hard,
+  `PR-AUC Ausbr.` = pr_onset, `Ausbrüche auf Liste` = sprintf("%d/%d", episodes_warned, onset_episodes),
+  Lift = lift, `Treffer Liste` = list_precision, `AUC alle` = auc, BSS = bss, `Kal.-Steigung` = cal_slope)
 wtab <- function(t, quiet_only) FM[[t]]$watch |> filter(quiet == quiet_only) |> head(15) |>
-  transmute(Land = country, Region = region, `Risiko Ensemble` = risk, `Elastic Net` = p_enet, `Random Forest` = p_rf, Boosting = p_gbm)
+  transmute(Land = country, Region = region, `Risiko Ensemble` = risk, `Elastic Net` = p_enet, `Random Forest` = p_rf,
+            Boosting = p_gbm, across(any_of(c(`Hybrid-Ensemble` = "risk_hybrid", `Chronos-2` = "p_chronos2",
+                                              `TimesFM 3` = "p_timesfm3", `Moirai-2` = "p_moirai2"))))
 r <- res |> filter(model == "ensemble")
 
 report <- c("# Monatliches Frühwarnsystem - automatischer Evaluationsbericht", "",
@@ -124,19 +137,21 @@ report <- c("# Monatliches Frühwarnsystem - automatischer Evaluationsbericht", 
   "## Datengrundlage", "",
   sprintf("* %d Länder (>= 1 Mio. Einwohner), Monatsdaten %s bis %s", n_distinct(P$panel$iso3c),
           format(min(P$panel$month), "%m/%Y"), format(P$last_ucdp, "%m/%Y")),
-  sprintf("* Features: %d strukturierte (Konflikt, Makro monatlich, Struktur) + %d News-Features", length(STRUCT), length(NEWS)),
+  sprintf("* Features: %d strukturierte (Konflikt inkl. räumlich, Makro monatlich, Struktur) + %d News-Features + %d Foundation-Prognosen",
+          length(STRUCT), length(NEWS), length(c(P$FM_C, P$FM_X))),
   sprintf("* Testdaten Konflikt: %d Länder-Monate, davon %d Ausbruchs-Monate in %d Episoden", r$n[r$target == "conflict"],
           r$onset_events[r$target == "conflict"], r$onset_episodes[r$target == "conflict"]),
   sprintf("* Testdaten Währung: %d Länder-Monate, davon %d Ausbruchs-Monate in %d Episoden", r$n[r$target == "fx"],
           r$onset_events[r$target == "fx"], r$onset_episodes[r$target == "fx"]), "",
   "## Gewaltkonflikt", "", md_table(tab("conflict")), "",
   "## Währungskrise", "", md_table(tab("fx")), "",
-  "_Ausbrüche = Länder, die in den 12 Monaten davor unter der Schwelle lagen. 'Ausbrüche auf Liste' = Episoden, bei denen das Land vorher mindestens einmal unter den Top 20 der ruhigen Länder stand. 'Treffer Liste' = Anteil der Listenplätze mit tatsächlichem Ausbruch._", "",
+  "_Ausbrüche = Länder, die in den 12 Monaten davor unter der Schwelle lagen. Schwierige Fälle = ruhige Länder mit Vorzeichen (Konflikt: mindestens 1 Toter in 12 Monaten; Währung: mehr als 5 % Abwertung in 12 Monaten) - hier entscheidet sich, ob ein Modell mehr kann als eine Faustregel. 'Ausbrüche auf Liste' = Episoden, bei denen das Land vorher mindestens einmal unter den Top 20 der ruhigen Länder stand. Lift = wie viel Mal mehr Ausbrüche die Liste enthält als eine Zufallsauswahl gleicher Grösse. 'Treffer Liste' = Anteil der Listenplätze mit tatsächlichem Ausbruch._", "",
   "![Leistung](figures/01_performance.png)", "",
-  "## Mehrwert der Nachrichtendaten (Wikipedia Current Events)", "",
-  md_table(news_gain |> transmute(Ziel = TLAB[target], Methode = method, Metrik = metric, Delta = delta,
-                                  `KI unten` = lo, `KI oben` = hi, `P(Delta>0)` = p_gt0)), "",
-  "![News](figures/02_news_value.png)", "",
+  "## Was bringt welcher Baustein?", "",
+  "News = Wikipedia-Nachrichtenticker; Foundation = Zero-shot-Prognosen von TimesFM 3, Chronos-2 und Moirai-2 als Zusatz-Features; Faustregel = Logit mit einer einzigen Variable.", "",
+  md_table(gains |> transmute(Ziel = TLAB[target], Baustein = block, Methode = method, Metrik = metric, Delta = delta,
+                              `KI unten` = lo, `KI oben` = hi, `P(Delta>0)` = p_gt0)), "",
+  "![Mehrwert](figures/02_value_added.png)", "",
   "## Diagnostik", "", "![Kalibrierung](figures/03_calibration.png)", "", "![Zeit](figures/04_auc_over_time.png)", "",
   "![Treiber](figures/05_drivers.png)", "", "![Fälle](figures/06_case_studies.png)", "",
   sprintf("## Beobachtungsliste %s bis %s", fc_month, fc_end), "", "![Watchlist](figures/07_watchlist.png)", "",

@@ -1,15 +1,17 @@
-# Monatliches Frühwarnsystem (R)
+# Monatliches Frühwarnsystem (R + Foundation-Modelle)
 
 Ein Frühwarnsystem auf **Monatsbasis** für 156 Länder, gebaut nur aus öffentlichen Daten. Es sagt für die
-**nächsten 3 Monate** zwei Arten von Krisen voraus:
+**nächsten 3 Monate** zwei Krisenarten voraus und vergleicht klassische Statistik, Machine Learning und
+**vortrainierte Zeitreihen-Foundation-Modelle (TimesFM 3, Chronos-2, Moirai-2)**.
 
 | Ziel | Definition | Quelle |
 |---|---|---|
-| **Gewaltkonflikt** | ≥ 25 Todesopfer organisierter Gewalt in den Monaten t+1 bis t+3 | UCDP GED + GED Candidate (monatlich) |
-| **Währungskrise** | Abwertung der Landeswährung ggü. USD um ≥ 15 % von t bis t+3 | World Bank Global Economic Monitor |
+| **Gewaltkonflikt** | ≥ 25 Todesopfer organisierter Gewalt in den Monaten t+1 bis t+3 | UCDP GED + Candidate |
+| **Währungskrise** | Abwertung ggü. USD um ≥ 15 % von t bis t+3 | World Bank Global Economic Monitor |
 
-Bewertet wird vor allem die Erkennung von **Ausbrüchen**: Krisen in Ländern, die in den 12 Monaten davor
-ruhig waren. Laufende Krisen fortzuschreiben ist trivial, gefragt ist die echte Frühwarnung.
+Bewertet wird vor allem die Erkennung von **Ausbrüchen**: Krisen in Ländern, die 12 Monate lang ruhig waren.
+Zusätzlich wird ehrlich geprüft, ob die Modelle **mehr können als eine Faustregel** und wie sie bei den
+**schwierigen Fällen** abschneiden: ruhige Länder, die schon Vorzeichen zeigen.
 
 > Automatischer Bericht mit allen Tabellen und Grafiken: [`output/report.md`](output/report.md)
 > Aktuelle Beobachtungslisten: `output/watchlist_conflict.csv`, `output/watchlist_fx.csv`
@@ -18,153 +20,218 @@ ruhig waren. Laufende Krisen fortzuschreiben ist trivial, gefragt ist die echte 
 
 | Quelle | Inhalt | Aktualität |
 |---|---|---|
-| **UCDP GED 26.1 + Candidate** (ucdp.uu.se) | Jedes Gewaltereignis weltweit mit Datum, Ort und Toten, getrennt nach staatlicher, nichtstaatlicher und einseitiger Gewalt | Monatlich, ca. 1 Monat Verzug |
-| **World Bank GEM** (Quelle 15) | Monatlich: Wechselkurs, Konsumentenpreise, Währungsreserven, Industrieproduktion, Aktienindex | 1–2 Monate Verzug |
-| **World Bank WDI/WGI** | Jährlich (Vorjahreswerte): BIP pro Kopf, Bevölkerung, Kindersterblichkeit, Jugendanteil, politische Stabilität, Regierungseffektivität, Mitsprache | Jährlich |
-| **Wikipedia „Portal:Current events“** | **Schnelle Textdaten**: täglicher Nachrichtenticker mit Quellen (Reuters, BBC, AP …), 55'000+ Meldungen seit 2017 | **Tagesaktuell** |
-| GDELT DOC 2.0 (optional) | Tonalität und Themenvolumen der weltweiten Online-News | Tagesaktuell, stark gedrosselt |
+| **UCDP GED + Candidate** | Jedes Gewaltereignis weltweit mit Datum, Koordinaten und Toten | monatlich, ca. 1 Monat Verzug |
+| **World Bank GEM** | Monatlich: Wechselkurs, Preise, Reserven, Industrieproduktion, Aktienindex | 1–2 Monate Verzug |
+| **World Bank WDI/WGI** | Jährlich: BIP pro Kopf, Bevölkerung, Kindersterblichkeit, Governance | jährlich |
+| **Wikipedia „Current events“** | Täglicher Nachrichtenticker, 55'000+ Meldungen seit 2017 (Rubrik, Land, Tonalität) | tagesaktuell |
+| **Hugging Face** | Vortrainierte Gewichte von TimesFM 3, Chronos-2, Moirai-2 (ca. 1.8 GB, einmalig) | – |
+| GDELT (optional) | Tonalität der weltweiten Online-News | tagesaktuell, stark gedrosselt |
 
-### Text Mining der Nachrichten (`R/03_fetch_news.R`)
+### Features (`R/04_build_panel.R`)
 
-Jede Meldung des Tickers wird automatisch zerlegt:
-1. **Rubrik**: Konflikt/Anschläge, Politik/Wahlen, Kriminalität, Wirtschaft, Katastrophen, Diplomatie, Gesundheit
-2. **Länder**: per Wörterbuch aus Ländernamen, Adjektiven und Hauptstädten (inkl. übergeordneter Themenzeilen wie „Sudanese civil war“)
-3. **Tonalität**: Anteil negativer Wörter (Bing-Lexikon)
+* **Konfliktgeschichte**: Tote und Ereignisse der letzten 1/3/12 Monate, nach Gewaltart, Trend, Monate seit letzter Krise
+* **Räumlich (neu, aus den UCDP-Koordinaten)**:
+  * Ausbreitung: Zahl der aktiven und der *neuen* Gewaltzonen (0,5°-Raster) im Land
+  * Nachbarschaft: Tote in **anderen** Ländern im Umkreis von 500 km um die grössten Städte des Landes
+* **Makro monatlich**: Wechselkursveränderung und -volatilität, Inflation, Reserven, Industrieproduktion, Börse
+* **Struktur jährlich**: BIP pro Kopf, Bevölkerung, Kindersterblichkeit, Jugendanteil, politische Stabilität
+* **News**: Zahl der Konflikt-, Politik-, Kriminalitäts- und Wirtschaftsmeldungen, Abweichung vom Normalniveau, Negativität
+* **Foundation-Prognosen (neu)**: Krisenwahrscheinlichkeit aus TimesFM 3, Chronos-2 und Moirai-2
 
-Daraus entstehen pro Land und Monat 18 Features, z. B. Zahl der Konfliktmeldungen, Konfliktanteil an der
-Berichterstattung, Abweichung vom eigenen 12-Monats-Mittel (z-Wert), Trend über 3 Monate und Negativität.
-Pro Monat genügt **eine API-Anfrage**, und alte Monate werden gecacht.
+## Methoden (`R/05_models.R`, `py/foundation_forecasts.py`)
 
-> **Warum Wikipedia statt GDELT?** GDELT erlaubt höchstens eine Anfrage alle 5 Sekunden und blockiert geteilte
-> Cloud-IPs oft komplett. Hier kam in 10 Minuten keine einzige Anfrage durch. Der GDELT-Code ist als optionale
-> Zusatzquelle enthalten (`USE_GDELT=1`). Lokal funktioniert er meist, der Erstabruf dauert aber 60–90 Minuten.
+| Familie | Methode | Beschreibung |
+|---|---|---|
+| Benchmark | Persistenz | Basisrate je nach aktueller Lage |
+| Benchmark | **Faustregel** | Logit mit **einer** Variable: Tote der letzten 12 Monate bzw. Inflation |
+| Statistisch | Logit | 10 Kernvariablen |
+| Regularisiert | Elastic Net | Struktur / nur News / Struktur+News |
+| Machine Learning | Random Forest, Boosting | Struktur / Struktur+News; Boosting zusätzlich mit Training ab 2011 |
+| Ensemble | Ensemble | Mittel aus Elastic Net, Random Forest, Boosting |
+| **Foundation (zero-shot)** | **TimesFM 3** (Google, ~1.3 GB) | Decoder-only-Transformer, vortrainiert auf Milliarden Zeitpunkten |
+| | **Chronos-2** (Amazon) | Transformer für Prognosen über viele Zeitreihen |
+| | **Moirai-2** (Salesforce, small) | Universeller Transformer („Any-Variate Attention“) |
+| | Foundation-Stack | Kalibrierte Kombination der drei (Logit auf Trainingsdaten) |
+| **Hybrid** | EN / RF / Boosting / Ensemble + Foundation | ML-Modelle mit den Foundation-Prognosen als Zusatz-Features |
 
-## Methoden (`R/05_models.R`)
+**Wie die Foundation-Modelle eingesetzt werden:** Sie sagen Zahlenreihen voraus, keine Ja/Nein-Ereignisse.
+Jedes Modell bekommt pro Land die bisherige Monatsreihe (bis zu 16 Jahre Kontext):
+- **Konflikt:** log(Tote der letzten 3 Monate)
+- **Währung:** log(Wechselkurs)
 
-| Methode | Beschreibung |
-|---|---|
-| Persistenz | Naiver Benchmark: Basisrate je nach aktueller Lage |
-| Logit | Logistische Regression mit 10 Kernvariablen |
-| Elastic Net | Regularisierte Logit (glmnet), je **nur Struktur**, **nur News** und **Struktur+News** |
-| Random Forest | ranger, Struktur bzw. Struktur+News |
-| Gradient Boosting | gbm, Struktur bzw. Struktur+News, zusätzlich **Struktur mit langer Historie ab 2011** |
-| Ensemble | Mittel aus Elastic Net, Random Forest und Boosting (je mit News) |
+Daraus sagt es die Quantile für Monat t+3 voraus, **ohne jedes Training auf unseren Daten**. Aus den Quantilen wird
+die Wahrscheinlichkeit berechnet, dass die Krisenschwelle überschritten wird. Ausserhalb der Quantile helfen
+exponentiell abfallende Ränder, damit die Rangfolge fein bleibt. Für jeden Monat sehen die Modelle nur die
+Vergangenheit: 31'867 Prognosen pro Modell.
 
-**Evaluation (`R/06_evaluation.R`):** echte Out-of-sample-Prognosen für die Monate 01/2021–06/2026. Alle 6 Monate
-wird neu trainiert, nur mit Daten, deren Ergebnis zu diesem Zeitpunkt schon bekannt war. Die Kennzahlen:
-- AUC und PR-AUC, gemessen auf ruhigen Ländern (also für Ausbrüche)
-- Kalibrierung (Brier, Brier Skill Score, Kalibrierungs-Steigung)
-- **Beobachtungsliste**: jeden Monat die Top 20 der ruhigen Länder. Wie viele Ausbrüche standen vorher darauf?
-- Länder-Cluster-Bootstrap für Konfidenzintervalle und für den Mehrwert der News
+**Nicht umgesetzt:**
+- **Lag-Llama**: nicht auf PyPI, wenig gepflegt.
+- **Time-LLM**: kein Zero-shot-Modell, sondern ein Framework, das ein grosses Sprachmodell erst auf die Daten
+  trainiert. Auf CPU ist das unrealistisch.
+- **TimeGPT** (Nixtla): kostenpflichtige API. Das in deiner Liste genannte „TAM gen. one / TAMG GBT“ konnte ich
+  nicht als existierendes Modell verifizieren; gemeint ist vermutlich TimeGPT.
+
+**Evaluation (`R/06_evaluation.R`):** echte Out-of-sample-Prognosen 01/2021–06/2026 mit Neutraining alle 6 Monate.
+Kennzahlen:
+- AUC für Ausbrüche und für die **schwierigen Fälle**: Konflikt = ruhig, aber mindestens 1 Toter in 12 Monaten;
+  Währung = mehr als 5 % Abwertung in 12 Monaten
+- PR-AUC
+- **Watchlist** (Top 20 der ruhigen Länder pro Monat): wie viele Ausbrüche standen vorher darauf, und der
+  **Lift** gegenüber einer Zufallsauswahl
+- Kalibrierung
+- Länder-Cluster-Bootstrap für alle Konfidenzintervalle und Vergleiche
 
 ## Ergebnisse
 
 ### Gewaltkonflikt: 25 Ausbrüche im Testzeitraum
 
-| Methode | AUC Ausbrüche (95 %-KI) | Ausbrüche auf Liste | AUC alle | Brier Skill |
+| Methode | AUC Ausbrüche (95 %-KI) | AUC schwierig | Ausbrüche auf Liste | Lift |
 |---|---|---|---|---|
-| **Ensemble (mit News)** | **0.85** (0.76–0.91) | **20/25** | 0.987 | 0.81 |
-| Random Forest – Struktur+News | 0.86 (0.77–0.92) | 21/25 | 0.987 | 0.81 |
-| Random Forest – Struktur | 0.84 (0.76–0.91) | 18/25 | 0.986 | 0.81 |
-| Logit (Kernvariablen) | 0.82 (0.72–0.89) | 19/25 | 0.985 | 0.80 |
-| Elastic Net – nur News | 0.71 (0.60–0.81) | 12/25 | 0.860 | 0.38 |
-| Persistenz (naiv) | ≈ Zufall | 9/25 | 0.919 | 0.73 |
+| **Ensemble – Hybrid (+Foundation)** | **0.86** (0.77–0.92) | 0.66 | 21/25 | 4.7 |
+| Random Forest – Hybrid | 0.86 (0.79–0.92) | 0.67 | 19/25 | 4.3 |
+| Ensemble (ohne Foundation) | 0.84 (0.75–0.91) | 0.66 | **22/25** | **4.9** |
+| Logit (Kernvariablen) | 0.82 (0.72–0.89) | 0.60 | 19/25 | 4.3 |
+| Chronos-2 (zero-shot) | 0.80 (0.70–0.88) | 0.59 | 18/25 | 4.0 |
+| **Faustregel** (nur Tote der letzten 12 Monate) | 0.76 (0.63–0.86) | 0.62 | 19/25 | 4.3 |
+| Moirai-2 (zero-shot) | 0.75 (0.66–0.83) | 0.55 | 20/25 | 4.5 |
+| TimesFM 3 (zero-shot) | 0.73 (0.64–0.82) | 0.60 | 20/25 | 4.5 |
 
 ### Währungskrise: 36 Ausbrüche im Testzeitraum
 
-| Methode | AUC Ausbrüche (95 %-KI) | Ausbrüche auf Liste | AUC alle | Brier Skill |
+| Methode | AUC Ausbrüche (95 %-KI) | AUC schwierig | PR-AUC | Ausbrüche auf Liste |
 |---|---|---|---|---|
-| **Boosting – Struktur, Training ab 2011** | **0.87** (0.83–0.90) | **25/36** | 0.915 | 0.22 |
-| Ensemble (mit News) | 0.81 (0.76–0.86) | 20/36 | 0.893 | 0.16 |
-| Random Forest – Struktur+News | 0.77 (0.70–0.84) | 19/36 | 0.875 | 0.12 |
-| Logit (Kernvariablen) | 0.69 (0.57–0.81) | 13/36 | 0.837 | 0.05 |
-| Elastic Net – nur News | 0.34 (schlechter als Zufall) | 5/36 | 0.425 | 0.00 |
+| **Boosting – Struktur, Training ab 2011** | **0.87** (0.83–0.91) | **0.80** | 0.11 | 25/36 |
+| Ensemble – Hybrid (+Foundation) | 0.81 (0.73–0.87) | 0.76 | 0.07 | 21/36 |
+| **Chronos-2 (zero-shot)** | 0.79 (0.69–0.88) | 0.79 | 0.09 | 26/36 |
+| Foundation-Stack | 0.75 (0.63–0.85) | 0.77 | **0.12** | 25/36 |
+| Ensemble (ohne Foundation) | 0.81 (0.74–0.86) | 0.73 | 0.06 | 19/36 |
+| TimesFM 3 (zero-shot) | 0.68 (0.55–0.79) | 0.74 | 0.09 | 21/36 |
+| Faustregel (nur Inflation) | 0.67 (0.55–0.75) | 0.53 | 0.03 | 13/36 |
+| Moirai-2 (zero-shot) | 0.66 (0.54–0.78) | 0.66 | 0.04 | 20/36 |
 
 ![Leistung](output/figures/01_performance.png)
 
-### Bewertung
+### Was bringt welcher Baustein?
 
-1. **Im Vergleich zum Jahresmodell ist die Frühwarnung klar besser.** Neue Konflikte werden mit einer AUC von
-   0,85 erkannt, beim Jahresmodell waren es 0,70–0,74. Monatliche Daten zur Gewalt- und Nachrichtenlage reagieren
-   viel schneller als Jahresstatistiken.
-2. **Die Beobachtungsliste lohnt sich.** Die Top 20 von rund 112 ruhigen Ländern (18 %) enthielten **80 % aller
-   späteren Konfliktausbrüche**. Eine Zufallsauswahl hätte etwa 18 % getroffen, das ist also rund **4,5-mal besser als
-   Zufall**. Aber: Nur etwa 3 % der Listenplätze führen tatsächlich zu einem Ausbruch. Die Liste ist ein Filter für
-   genauere Analysen, kein Alarm.
-3. **Die Wahrscheinlichkeiten bleiben niedrig.** Selbst das gefährdetste ruhige Land liegt meist unter 10 %.
-   Ausbrüche sind seltene Ereignisse (0,85 % der ruhigen Länder-Monate). Ehrlicherweise heisst das: Ein Modell kann
-   sie eingrenzen, aber nicht sicher vorhersagen.
-4. **Die Fallbeispiele zeigen die Grenzen** (`output/figures/06_case_studies.png`). Plötzliche Gewalt wie in
-   Armenien (2022) oder Tansania (Wahlen 2025) sieht das Modell vorher kaum. Nach dem ersten Gewaltmonat springt das
-   Risiko aber sofort hoch, ein Monat Verzug statt eines ganzen Jahres.
-5. **Für Währungskrisen gewinnt das einfachste ML-Modell mit der längsten Historie.** Boosting mit Daten ab 2011
-   (0,87) schlägt alle Modelle ab 2018. Währungskrisen sind selten, mehr Beispiele zählen mehr als mehr Variablen.
-   Wichtigste Signale: schwache Institutionen (politische Stabilität, Regierungseffektivität),
-   Wechselkurs-Volatilität und die Abwertung der letzten 12 Monate. Bei Konflikten dominiert die jüngste
-   Gewaltgeschichte (Tote und Ereignisse der letzten 1–12 Monate), siehe `output/figures/05_drivers.png`.
-   Die News-Features erscheinen in keiner der beiden Top-15-Listen.
-6. **Die Methoden liegen nah beieinander.** Die Konfidenzintervalle überlappen stark. Empfehlung: **Ensemble für
-   Konflikte, Boosting mit langer Historie für Währungskrisen.**
+![Mehrwert](output/figures/02_value_added.png)
 
-### Was bringen die schnellen Textdaten?
+## Bewertung
 
-![News](output/figures/02_news_value.png)
+**1. Bei Konflikten ist der Vorsprung gegenüber der Faustregel kleiner als gedacht.** Das beste Ensemble liegt
+bei Ausbrüchen 0,08 AUC über der Faustregel „Tote der letzten 12 Monate“, das Konfidenzintervall
+(−0,02 bis +0,19) schliesst null aber ein. Bei den schwierigen Fällen schaffen alle Modelle nur 0,55–0,68.
+Welches unruhige Land kippt, sagt keine Methode zuverlässig voraus. Die Watchlist bleibt trotzdem nützlich:
+Sie enthält 21–22 von 25 Ausbrüchen, fast 5-mal mehr als eine Zufallsauswahl, aber auch die Faustregel schafft 19.
 
-* **Allein haben sie Signal für Konflikte** (AUC 0,71 bei Ausbrüchen), für Währungskrisen aber keines. Wikipedia
-  berichtet über Wechselkurse nur selten.
-* **Zusätzlich zu den Strukturdaten** verbessern sie den Random Forest bei Konfliktausbrüchen leicht, aber
-  statistisch gesichert: AUC +0,018 (KI 0,001–0,032), 21 statt 18 erkannte Ausbrüche. Beim Elastic Net und beim
-  Boosting gibt es keinen Effekt.
-* Bei Währungskrisen hilft der Text nur dem schwachen Elastic Net (+0,09), den besten Modellen nicht.
-* **Fazit:** Der Nachrichtenticker liefert einen kleinen, echten Mehrwert für die Konflikt-Frühwarnung, der
-  grösste Gewinn kommt aber von den monatlichen Gewaltdaten selbst. Ein dichterer Nachrichtenstrom (GDELT lokal
-  aktivieren) könnte mehr bringen.
+**2. Bei Währungskrisen sind die Modelle klar besser als die Faustregel.** Boosting mit langer Historie
+(0,87; schwierige Fälle 0,80) und das Ensemble schlagen die Faustregel „Inflation“ signifikant (+0,14).
 
-### Aktuelle Beobachtungsliste (Oktober–Dezember 2026)
+**3. Foundation-Modelle zero-shot: beachtlich bei Währungen, mittelmässig bei Konflikten.**
+* **Chronos-2** ist das klar beste der drei. Bei Währungskrisen erreicht es **ohne jedes Training** eine AUC von
+  0,79 und bei schwierigen Fällen 0,79, praktisch gleich gut wie das beste ML-Modell. Es setzt 26 von 36 Ausbrüchen
+  auf die Liste, der Spitzenwert aller Modelle. Wechselkurse sind „normale“ Zeitreihen mit Trends und
+  Volatilitätsclustern, genau dafür sind diese Modelle trainiert.
+* Bei **Konflikten** liegen die Foundation-Modelle allein auf Faustregel-Niveau (0,73–0,80). Gewaltausbrüche
+  sind seltene Sprünge aus dem Nichts. Eine Reihe, die monatelang null ist, enthält kaum Information. Was fehlt,
+  ist Kontext (Governance, Nachbarschaft, Wirtschaft), und den haben nur die ML-Modelle.
+* **TimesFM 3**, das grösste Modell (1.3 GB), schneidet nicht besser ab als das kleine Moirai-2 (44 MB).
+  Es braucht aber 16 statt 0,5 Minuten Rechenzeit. Grösse allein hilft hier nicht.
 
-![Watchlist](output/figures/07_watchlist.png)
+**4. Als Zusatz-Features (Hybrid) bringen die Foundation-Prognosen einen kleinen Gewinn.**
+* **Boosting bei Währungskrisen** verbessert sich signifikant: +0,09 AUC bei Ausbrüchen, +0,11 bei schwierigen Fällen.
+* Bei **Konflikten** steigt das Ensemble von 0,84 auf 0,86. Der Gewinn ist nicht gesichert.
+* Im Hybrid-Random-Forest gehören die Foundation-Prognosen zu den **wichtigsten Variablen**: Moirai-2 ist
+  bei Konflikten Nummer 1, Chronos-2 bei Währungen Nummer 2. Sie fassen die Dynamik einer Reihe kompakt zusammen.
+
+**5. Räumliche Features:** Die Zahl der aktiven Gewaltzonen im Land ist der viertwichtigste
+Konflikt-Indikator. Gewalt in Nachbarländern trägt nur wenig bei (Rang 19–21). Die Gesamtleistung ändert
+sich dadurch kaum.
+
+**6. Die Nachrichtendaten** bringen weiterhin nur wenig. Einzig beim Elastic Net für Währungskrisen gibt es
+einen gesicherten Gewinn (+0,06).
+
+### Empfehlung
+
+| Einsatz | Modell |
+|---|---|
+| Konflikt-Watchlist | **Ensemble (mit oder ohne Foundation)**. Unterschiede im Rauschen; die Faustregel als Plausibilitätscheck daneben |
+| Währungs-Watchlist | **Boosting mit langer Historie**, ergänzt durch **Chronos-2** als unabhängige zweite Meinung |
+| Wenn wenig Rechenzeit | **Chronos-2** statt TimesFM 3: besser und 4-mal schneller |
+
+Die grösste Schwäche bleibt die **kleine Zahl an Ausbrüchen** (25 bzw. 36). Die Konfidenzintervalle sind breit,
+und die meisten Rangunterschiede sind nicht gesichert.
 
 ## Grenzen
 
-* **Datenverzug:** UCDP-Candidate-Daten erscheinen etwa einen Monat später, die Makrodaten 1–2 Monate.
-  Die Evaluation geht davon aus, dass die Daten am Monatsende vorliegen. Im Echtbetrieb ist der Vorsprung kleiner.
-* **Vorläufige Daten:** Die UCDP-Candidate-Daten werden später noch korrigiert.
+* **Datenverzug**: Die UCDP-Candidate-Daten erscheinen etwa 1 Monat später, die Makrodaten 1–2 Monate. Im
+  Echtbetrieb ist der Vorsprung kleiner als in der Evaluation.
+* Die Foundation-Modelle sehen nur je **eine Reihe**. TimesFM 3 und Chronos-2 könnten auch Zusatzvariablen
+  verarbeiten; das wäre eine sinnvolle Erweiterung.
 * Länder **ohne aktuelle Wechselkursdaten** (z. B. Sudan, Iran, Syrien) fehlen in der Währungs-Watchlist.
-* Die **Ländererkennung im Text** arbeitet mit einem Wörterbuch. Mehrdeutige Namen (Georgia, Jordan, Guinea) sind
-  abgefangen, aber nicht perfekt.
-* Wikipedia ist **englischsprachig und westlich geprägt**. Kleine Länder kommen selten vor.
+* Die Ländererkennung im Nachrichtentext arbeitet mit einem Wörterbuch. Wikipedia ist englischsprachig und westlich geprägt.
 
 ## Ausführen
 
-Voraussetzungen: R ≥ 4.3 und Internet (api.worldbank.org, ucdp.uu.se, en.wikipedia.org).
+### 1. R-Pakete
 
 ```r
 install.packages(c("dplyr", "tidyr", "purrr", "stringr", "readr", "jsonlite", "ggplot2", "patchwork",
-                   "countrycode", "glmnet", "ranger", "gbm", "pROC", "tidytext", "zoo"))
+                   "countrycode", "glmnet", "ranger", "gbm", "pROC", "tidytext", "zoo", "maps"))
 ```
+
+### 2. Python für die Foundation-Modelle (optional, empfohlen)
+
+Benötigt wird **Python 3.11** (wegen Moirai-2). Ohne Python läuft alles ausser den Foundation- und
+Hybrid-Modellen. Die Pakete gehören in den Ordner `.venv` im Projektordner, R findet sie dort automatisch.
+
+Windows (Eingabeaufforderung im Ordner `early_warning_monthly`):
+
+```bash
+py -3.11 -m venv .venv
+```
+
+```bash
+.venv\Scripts\python -m pip install -r py\requirements.txt
+```
+
+macOS/Linux:
+
+```bash
+python3.11 -m venv .venv && .venv/bin/python -m pip install -r py/requirements.txt
+```
+
+Beim ersten Lauf werden die Modellgewichte von Hugging Face geladen (ca. 1.8 GB). Die Prognosen dauern auf
+einem normalen Laptop etwa 20–40 Minuten (davon TimesFM 3 den grössten Teil) und werden danach gecacht.
+Ein anderer Interpreter lässt sich mit `FM_PYTHON=...` angeben, `USE_FM=0` schaltet die Foundation-Modelle ab.
+
+### 3. Pipeline starten
+
+In RStudio `run_all.R` öffnen und **Source** klicken, oder:
 
 ```bash
 Rscript run_all.R
 ```
 
-* Der erste Lauf dauert ca. 25 Minuten (10 Min. Wikipedia, 10 Min. Modelle), Folgeläufe ca. 3 Minuten.
-* `RISK_REFRESH=1` lädt UCDP- und Weltbank-Daten neu und trainiert alle Modelle neu. **Das ist der Befehl für das monatliche Update.**
-* `USE_GDELT=1` aktiviert GDELT als zusätzliche Nachrichtenquelle.
+* Der erste Lauf dauert ca. 60 Minuten, Folgeläufe ca. 3 Minuten.
+* `RISK_REFRESH=1` lädt alle Daten neu und rechnet alles neu (monatliches Update).
 
 Automatisch und kostenlos per GitHub Actions: `.github/workflows/update-early-warning.yml` (monatlich am 22.,
-nach dem Erscheinen der neuen UCDP-Candidate-Daten).
+mit Python-Umgebung und Cache der Modellgewichte).
 
 ### Struktur
 
 ```
-run_all.R                  Pipeline
-R/00_config.R              Parameter (Horizont, Schwellen, Testzeitraum), Hilfsfunktionen
-R/01_fetch_worldbank.R     GEM-Monatsdaten + jährliche WDI/WGI-Struktur
-R/02_fetch_ucdp.R          UCDP GED + Candidate -> Tote pro Land und Monat
-R/03_fetch_news.R          Wikipedia Current Events -> Text Mining
-R/03b_fetch_gdelt.R        GDELT (optional)
-R/04_build_panel.R         Länder-Monats-Panel, Zielvariablen, Features
-R/05_models.R              11 Methoden, Rolling-Origin-Evaluation, Beobachtungslisten
-R/06_evaluation.R          Kennzahlen, Bootstrap, Mehrwert der News
-R/07_report.R              Grafiken und output/report.md
+run_all.R                    Pipeline
+R/00_config.R                Parameter (Horizont, Schwellen, Testzeitraum)
+R/01_fetch_worldbank.R       GEM-Monatsdaten + jährliche WDI/WGI-Struktur
+R/02_fetch_ucdp.R            UCDP -> Tote pro Land und Monat + räumliche Features
+R/03_fetch_news.R            Wikipedia Current Events -> Text Mining
+R/03b_fetch_gdelt.R          GDELT (optional)
+R/04_build_panel.R           Länder-Monats-Panel, Zielvariablen, Features
+R/04b_foundation.R           Ruft py/foundation_forecasts.py auf, liest die Zero-shot-Prognosen ein
+R/05_models.R                20 Methoden, Rolling-Origin-Evaluation, Beobachtungslisten
+R/06_evaluation.R            Kennzahlen, Bootstrap, Mehrwert der Bausteine
+R/07_report.R                Grafiken und output/report.md
+py/foundation_forecasts.py   TimesFM 3, Chronos-2, Moirai-2 (zero-shot, Quantile -> Wahrscheinlichkeit)
+py/requirements.txt          Python-Pakete
 ```

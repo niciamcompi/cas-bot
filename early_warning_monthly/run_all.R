@@ -19,7 +19,7 @@ if (!file.exists("R/02_fetch_ucdp.R"))
 cat("Projektordner:", getwd(), "\n")
 
 t_start <- Sys.time()
-for (s in c("00_config", "01_fetch_worldbank", "02_fetch_ucdp", "03_fetch_news", "03b_fetch_gdelt", "04_build_panel",
+for (s in c("00_config", "01_fetch_worldbank", "02_fetch_ucdp", "03_fetch_news", "03b_fetch_gdelt", "04_build_panel", "04b_foundation",
             "05_models", "06_evaluation", "07_report")) {
   cat("\n==== ", s, " ====\n", sep = "")
   source(file.path("R", paste0(s, ".R")), encoding = "UTF-8")

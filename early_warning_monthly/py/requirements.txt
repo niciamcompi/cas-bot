@@ -1,0 +1,8 @@
+# Python-Umgebung für die Zeitreihen-Foundation-Modelle (Python 3.11 empfohlen)
+torch>=2.2,<2.5          # uni2ts (Moirai-2) verlangt torch < 2.5
+numpy>=1.26.4,<2
+pandas>=2.0
+timesfm[torch]>=3.0      # Google TimesFM 3.0
+chronos-forecasting>=2.2 # Amazon Chronos-2
+transformers>=4.41,<4.50 # kompatibel mit torch < 2.5
+uni2ts>=2.0              # Salesforce Moirai-2

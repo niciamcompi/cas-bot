@@ -36,7 +36,7 @@ news_last <- month_floor(attr(news, "last_date"))
 panel <- expand_grid(iso3c = ctry$iso3c, month = months) |>
   left_join(select(ctry, iso3c, country, region), by = "iso3c") |>
   left_join(ucdp, by = c("iso3c", "month")) |>
-  mutate(across(c(deaths, deaths_sb, deaths_ns, deaths_os, events), \(x) coalesce(x, 0))) |>
+  mutate(across(c(deaths, deaths_sb, deaths_ns, deaths_os, events, spill_deaths, cells_3, new_cells_3), \(x) coalesce(x, 0))) |>
   left_join(gem_w, by = c("iso3c", "month")) |>
   mutate(year_lag = as.integer(format(month, "%Y")) - 1L) |>
   left_join(ann_w, by = c("iso3c", "year_lag" = "year")) |>
@@ -66,6 +66,12 @@ panel <- expand_grid(iso3c = ctry$iso3c, month = months) |>
     c_os_12     = log1p(roll_sum(deaths_os, 12)),
     c_events_3  = log1p(roll_sum(events, 3)),
     c_trend     = c_deaths_3 - log1p(lag(deaths3, 3)),
+    # räumlich: Gewalt in Nachbarländern (<= 500 km) und Ausbreitung im Land
+    c_spill_3   = log1p(roll_sum(spill_deaths, 3)),
+    c_spill_12  = log1p(roll_sum(spill_deaths, 12)),
+    c_spill_trend = c_spill_3 - log1p(lag(roll_sum(spill_deaths, 3), 3)),
+    c_cells_3   = log1p(cells_3),
+    c_new_cells_3 = log1p(new_cells_3),
     c_months_since = {
       v <- numeric(n()); cnt <- 120
       for (i in seq_along(v)) { cnt <- if (!is.na(deaths3[i]) && deaths3[i] >= CFG$conflict_thr) 0 else min(cnt + 1, 120); v[i] <- cnt }

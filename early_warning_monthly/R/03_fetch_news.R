@@ -122,7 +122,9 @@ items <- map_dfr(news_months, function(m) {
   f <- file.path(cache_dir, paste0(format(m, "%Y-%m"), ".rds"))
   recent <- m >= add_months(month_floor(Sys.Date()), -2)    # nur die letzten 3 Monate neu laden (Archiv ist stabil)
   if (file.exists(f) && !recent) return(readRDS(f))
-  d <- wiki_month(m); Sys.sleep(1)
+  d <- tryCatch(wiki_month(m), error = function(e) {                    # Netzwerkproblem: Cache verwenden
+    if (file.exists(f)) { warning("Wikipedia ", format(m, "%Y-%m"), " nicht erreichbar - verwende Cache"); readRDS(f) } else stop(e) })
+  Sys.sleep(1)
   if (!is.null(d)) saveRDS(d, f)
   d
 })
