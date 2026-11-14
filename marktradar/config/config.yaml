@@ -1,0 +1,39 @@
+# Zentrale Konfiguration. Relative Pfade gelten ab dem Projektordner (marktradar/).
+# Jede Einstellung hier kann ohne Code-Änderung angepasst werden.
+
+data:
+  # BAG "Aufsichtsdaten OKP" – erscheint jährlich neu (Statistik der obligatorischen KV, T 5.01).
+  # Wenn das BAG eine neue Ausgabe publiziert: URL ersetzen, sha256 leeren, `marktradar download` laufen lassen.
+  source_url: "https://www.bag.admin.ch/dam/de/sd-web/RRUZlsq0gPk7/aufsichtsdaten-okp-1996-2024.xlsx"
+  sha256: "9f4f58cc9a9567fc16da3b299f5d86b73fcbeab1f3f831a8fdc8c548f7f1c214"
+  raw_path: "data/raw/aufsichtsdaten_okp.xlsx"
+  processed_path: "data/processed/panel.parquet"
+  # Ab 2006 haben alle Jahresblätter dieselbe Spaltencodierung (1, 3B, 4B, ...).
+  first_year: 2006
+
+features:
+  # Kleinstversicherer verrauschen das Signal (ein paar Dutzend Wechsel = ±20 %).
+  min_versicherte: 1000
+  # Veränderungen > ±50 % log-Marktanteil sind fast immer Fusionen/Bestandesübertragungen,
+  # kein Wechselverhalten -> werden aus dem Training ausgeschlossen.
+  max_abs_target: 0.5
+
+model:
+  learning_rate: 0.05
+  max_iter: 300
+  max_depth: 3
+  min_samples_leaf: 20
+  l2_regularization: 1.0
+  # Unteres/oberes Quantil für das Prognoseintervall (80 %-Intervall).
+  quantiles: [0.1, 0.9]
+  random_state: 42
+
+backtest:
+  # Rolling-origin: für jedes Testjahr wird nur mit Daten aus früheren Jahren trainiert.
+  first_test_year: 2014
+
+registry:
+  path: "models"
+  # Ein neues Modell wird nur produktiv gesetzt, wenn sein Backtest-MAE höchstens
+  # 2 % schlechter ist als das des aktuellen Produktionsmodells.
+  promotion_tolerance: 0.02

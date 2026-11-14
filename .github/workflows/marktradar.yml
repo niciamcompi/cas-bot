@@ -1,0 +1,77 @@
+# CI/CD für das Teilprojekt marktradar/
+#  - bei jedem Push/PR: Lint, Typen, Tests (synthetische Daten, kein Netzwerk nötig)
+#  - monatlich + manuell: echtes Training auf BAG-Daten ("Continuous Training"),
+#    Modell + Metriken als Artefakt, danach Docker-Image bauen und testen
+name: marktradar
+
+on:
+  push:
+    paths: ["marktradar/**", ".github/workflows/marktradar.yml"]
+  pull_request:
+    paths: ["marktradar/**", ".github/workflows/marktradar.yml"]
+  schedule:
+    - cron: "17 5 3 * *"  # 3. Tag jedes Monats, 05:17 UTC
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: marktradar
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: marktradar/uv.lock
+      - run: uv sync --frozen
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy src
+      - run: uv run pytest --junitxml=junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit
+          path: marktradar/junit.xml
+
+  train:
+    needs: quality
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run marktradar download
+      - run: uv run marktradar build
+      - run: uv run marktradar train
+      - name: Metriken in die Job-Zusammenfassung
+        run: |
+          echo '### Backtest' >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          cat models/*/metadata.json | uv run python -c "import json,sys; print(json.dumps(json.load(sys.stdin)['backtest'], indent=2))" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: modell
+          path: |
+            marktradar/models/
+            marktradar/data/processed/
+
+  docker:
+    needs: quality
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t marktradar .
+      - name: Smoke-Test des Containers
+        run: |
+          docker run -d --name mr -p 8000:8000 marktradar
+          for i in $(seq 1 30); do curl -fsS localhost:8000/health && break; sleep 1; done
+          curl -fsS -X POST localhost:8000/prognose -H 'Content-Type: application/json' \
+               -d '{"bag_nr": 8, "praemienanpassung_rel_pp": 1}'
+          docker rm -f mr
