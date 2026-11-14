@@ -41,6 +41,14 @@ uv run marktradar predict 8 --kurve
 make serve           # http://localhost:8000/docs
 ```
 
+**Windows (PowerShell)**: `make` gibt es dort nicht, stattdessen `tasks.ps1`:
+
+```powershell
+cd marktradar
+powershell -ExecutionPolicy Bypass -File .\tasks.ps1 pipeline
+powershell -ExecutionPolicy Bypass -File .\tasks.ps1 serve
+```
+
 Oder alles im Container (trainiert beim Build):
 
 ```bash

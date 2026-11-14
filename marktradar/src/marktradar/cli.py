@@ -42,7 +42,7 @@ def download(config: ConfigOpt = None) -> None:
     """Rohdaten (BAG Aufsichtsdaten OKP) herunterladen."""
     cfg = _settings(config)
     digest = data.download(cfg.data.source_url, cfg.data.raw_path, cfg.data.sha256)
-    typer.echo(f"Gespeichert: {cfg.data.raw_path} (sha256 {digest[:12]}…)")
+    typer.echo(f"Gespeichert: {cfg.data.raw_path} (sha256 {digest[:12]}...)")
 
 
 @app.command()
@@ -112,10 +112,10 @@ def train(
         summary["mae_modell"], prod_mae, cfg.registry.promotion_tolerance
     ):
         registry.promote(version_dir.name, root)
-        typer.echo(f"✔ Version {version_dir.name} ist jetzt produktiv.")
+        typer.echo(f"OK: Version {version_dir.name} ist jetzt produktiv.")
     else:
         typer.echo(
-            f"✘ Version {version_dir.name} gespeichert, aber NICHT produktiv: "
+            f"ABGELEHNT: Version {version_dir.name} gespeichert, aber NICHT produktiv: "
             f"MAE {summary['mae_modell']} vs. Produktion {prod_mae}."
         )
         raise typer.Exit(code=2)
