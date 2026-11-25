@@ -1,11 +1,11 @@
 table SP500
-	lineageTag: 007b1065-e4e0-4c35-8897-23728eea55a5
+	lineageTag: 83c9acb9-c483-493d-bddd-ff67092a52e9
 
 	measure Indexstand =
 			VAR d = MAX(SP500[Datum])
 			RETURN CALCULATE(SUM(SP500[Index]), SP500[Datum] = d)
 		formatString: #,##0
-		lineageTag: 9a997b96-3705-4cc8-945e-e0df1d5fcc1d
+		lineageTag: 69afc692-4042-4d5b-8318-fd4796274afb
 
 	measure 'Rendite 12M' =
 			VAR d = MAX(SP500[Datum])
@@ -13,7 +13,7 @@ table SP500
 			VAR vorher = CALCULATE(SUM(SP500[Index]), ALL(SP500), SP500[Datum] = EDATE(d, -12))
 			RETURN DIVIDE(jetzt, vorher) - 1
 		formatString: 0.0%
-		lineageTag: 3e38949a-0c16-4065-b0a8-83692e86567d
+		lineageTag: 7d9e2d7f-0f87-4731-8e3d-70be2423e206
 
 	measure Jahresrendite =
 			VAR j = MAX(SP500[Jahr])
@@ -23,22 +23,22 @@ table SP500
 			VAR vor = CALCULATE(SUM(SP500[Index]), ALL(SP500), SP500[Datum] = d_vor)
 			RETURN IF(NOT ISBLANK(vor), DIVIDE(ende, vor) - 1)
 		formatString: 0.0%
-		lineageTag: acaac096-7e1d-4418-9ecd-0d07c94afac9
+		lineageTag: a19c5d31-b942-452d-822b-10a24ece3026
 
 	measure 'Zinssatz 10J' =
 			AVERAGE(SP500[Zins 10J])
 		formatString: 0.00
-		lineageTag: 524920f3-a2cd-4684-9c58-17f160e0c085
+		lineageTag: 4ebe0f5d-c5c7-4e03-98e3-e7313ae7bcf8
 
 	measure 'Shiller KGV' =
 			LASTNONBLANKVALUE(SP500[Datum], AVERAGE(SP500[KGV10]))
 		formatString: 0.0
-		lineageTag: 6c2eb7f5-c529-41c6-be1b-3ecc4506008b
+		lineageTag: 4fb7f00a-fc54-4730-8156-9b65be386a62
 
 	column Datum
 		dataType: dateTime
 		formatString: yyyy-mm-dd
-		lineageTag: 77f2b37a-9f07-48b9-b4a3-9b4aa80320dc
+		lineageTag: 0191340e-228b-4cbc-a74d-542ad41c8100
 		summarizeBy: none
 		sourceColumn: Datum
 
@@ -47,7 +47,7 @@ table SP500
 	column Index
 		dataType: double
 		formatString: #,##0.00
-		lineageTag: 4579e798-7c3f-47ad-a07b-f22e082892c2
+		lineageTag: 9735cb71-dcea-47be-a6c1-2972fd8c44fd
 		summarizeBy: none
 		sourceColumn: Index
 
@@ -56,7 +56,7 @@ table SP500
 	column Dividende
 		dataType: double
 		formatString: #,##0.00
-		lineageTag: 03582755-d0cf-4d99-bd53-e44076e98e88
+		lineageTag: 905eed6d-334a-4573-97f9-d60350672e0f
 		summarizeBy: none
 		sourceColumn: Dividende
 
@@ -65,7 +65,7 @@ table SP500
 	column Gewinn
 		dataType: double
 		formatString: #,##0.00
-		lineageTag: fa811d68-2ed0-44ed-ba6a-1419ed8008fb
+		lineageTag: 253cee14-a69a-454b-acd0-314395e09b83
 		summarizeBy: none
 		sourceColumn: Gewinn
 
@@ -74,7 +74,7 @@ table SP500
 	column 'Zins 10J'
 		dataType: double
 		formatString: 0.00
-		lineageTag: 7e35e22a-691e-45f5-95b8-b00b7598cf56
+		lineageTag: f0beae50-1997-4856-8fa9-10e24ff7f0e6
 		summarizeBy: none
 		sourceColumn: Zins 10J
 
@@ -83,7 +83,7 @@ table SP500
 	column KGV10
 		dataType: double
 		formatString: 0.0
-		lineageTag: 4f2b6e06-4f57-4c89-a6c5-46ef7f5a1b9c
+		lineageTag: 0078b22e-fca6-4151-ba23-a584ce47746a
 		summarizeBy: none
 		sourceColumn: KGV10
 
@@ -92,7 +92,7 @@ table SP500
 	column Jahr
 		dataType: int64
 		formatString: 0
-		lineageTag: b3e9bccf-1d37-48a3-8cf2-977cb1780b87
+		lineageTag: b39761bd-8c2d-4513-ab37-3987466bcfc0
 		summarizeBy: none
 		sourceColumn: Jahr
 

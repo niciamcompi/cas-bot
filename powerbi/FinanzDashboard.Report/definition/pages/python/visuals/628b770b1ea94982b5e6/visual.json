@@ -1,0 +1,88 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "628b770b1ea94982b5e6",
+  "position": {
+    "x": 656,
+    "y": 72,
+    "z": 2000,
+    "width": 600,
+    "height": 310,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "pythonVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Datum"
+                }
+              },
+              "queryRef": "SP500.Datum",
+              "nativeQueryRef": "Datum"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Index"
+                }
+              },
+              "queryRef": "SP500.Index",
+              "nativeQueryRef": "Index"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Jahr"
+                }
+              },
+              "queryRef": "SP500.Jahr",
+              "nativeQueryRef": "Jahr"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'import matplotlib.pyplot as plt\nimport pandas as pd\n\nplt.rcParams.update(\n    {\n        \"font.family\": \"sans-serif\",\n        \"font.size\": 10,\n        \"axes.edgecolor\": \"#E6E9EF\",\n        \"axes.labelcolor\": \"#31333F\",\n        \"axes.spines.top\": False,\n        \"axes.spines.right\": False,\n        \"axes.grid\": True,\n        \"axes.axisbelow\": True,\n        \"grid.color\": \"#E6E9EF\",\n        \"xtick.color\": \"#31333F\",\n        \"ytick.color\": \"#31333F\",\n    }\n)\n\ndf = (\n    dataset.assign(Datum=lambda d: pd.to_datetime(d[\"Datum\"]))\n    .sort_values(\"Datum\")\n    .groupby(\"Jahr\", as_index=False)[\"Index\"]\n    .last()\n    .assign(Rendite=lambda d: d[\"Index\"].pct_change() * 100)\n    .dropna()\n)\nfig, ax = plt.subplots(figsize=(8, 3.5))\nax.bar(\n    df[\"Jahr\"],\n    df[\"Rendite\"],\n    color=df[\"Rendite\"].ge(0).map({True: \"#0068C9\", False: \"#FF2B2B\"}),\n)\nax.axhline(0, color=\"#31333F\", linewidth=0.8)\nax.set_title(\"Jahresrendite in % (Python)\", loc=\"left\", fontweight=\"bold\", color=\"#31333F\")\nax.grid(axis=\"x\", visible=False)\nfig.tight_layout()\nplt.show()\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Python'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

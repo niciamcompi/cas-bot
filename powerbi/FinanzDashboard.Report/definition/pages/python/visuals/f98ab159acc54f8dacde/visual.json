@@ -1,0 +1,88 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "f98ab159acc54f8dacde",
+  "position": {
+    "x": 656,
+    "y": 398,
+    "z": 4000,
+    "width": 600,
+    "height": 310,
+    "tabOrder": 4000
+  },
+  "visual": {
+    "visualType": "pythonVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "Symbol"
+                }
+              },
+              "queryRef": "Unternehmen.Symbol",
+              "nativeQueryRef": "Symbol"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "Sektor"
+                }
+              },
+              "queryRef": "Unternehmen.Sektor",
+              "nativeQueryRef": "Sektor"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "KGV"
+                }
+              },
+              "queryRef": "Unternehmen.KGV",
+              "nativeQueryRef": "KGV"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'import matplotlib.pyplot as plt\nimport pandas as pd\n\nplt.rcParams.update(\n    {\n        \"font.family\": \"sans-serif\",\n        \"font.size\": 10,\n        \"axes.edgecolor\": \"#E6E9EF\",\n        \"axes.labelcolor\": \"#31333F\",\n        \"axes.spines.top\": False,\n        \"axes.spines.right\": False,\n        \"axes.grid\": True,\n        \"axes.axisbelow\": True,\n        \"grid.color\": \"#E6E9EF\",\n        \"xtick.color\": \"#31333F\",\n        \"ytick.color\": \"#31333F\",\n    }\n)\n\ndf = (\n    dataset.groupby(\"Sektor\", as_index=False)[\"KGV\"]\n    .median()\n    .sort_values(\"KGV\", ascending=False)\n)\nfig, ax = plt.subplots(figsize=(6, 4))\nax.bar(df[\"Sektor\"], df[\"KGV\"], color=\"#83C9FF\")\nax.set_title(\"Median-KGV nach Sektor (Python)\", loc=\"left\", fontweight=\"bold\", color=\"#31333F\")\nax.tick_params(axis=\"x\", rotation=45)\nplt.setp(ax.get_xticklabels(), ha=\"right\")\nax.grid(axis=\"x\", visible=False)\nfig.tight_layout()\nplt.show()\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Python'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

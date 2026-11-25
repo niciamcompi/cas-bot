@@ -23,3 +23,9 @@ Power-BI-Projekt (`.pbip`, PBIR + TMDL) mit S&P-500-Daten im Streamlit-Look.
   Jahresrenditen
 - **Unternehmen**: Sektor-Slicer, KPI-Karten, Marktkapitalisierung und
   Median-KGV nach Sektor, Tabelle der grössten Unternehmen
+- **Python-Visuals**: dieselben Charts als matplotlib-Skripte im
+  Streamlit-Stil. Voraussetzung: lokales Python mit `pandas` und
+  `matplotlib`, in Power BI unter *Optionen > Python-Skripterstellung*
+  hinterlegt. Beim Öffnen Python-Visuals aktivieren.
+
+Die Streamlit-App dazu liegt in `../finanz_streamlit/`.

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "d98f13f955e642e98d84",
+  "position": {
+    "x": 24,
+    "y": 398,
+    "z": 3000,
+    "width": 616,
+    "height": 310,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "pythonVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "Symbol"
+                }
+              },
+              "queryRef": "Unternehmen.Symbol",
+              "nativeQueryRef": "Symbol"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "Sektor"
+                }
+              },
+              "queryRef": "Unternehmen.Sektor",
+              "nativeQueryRef": "Sektor"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "Marktkapitalisierung"
+                }
+              },
+              "queryRef": "Unternehmen.Marktkapitalisierung",
+              "nativeQueryRef": "Marktkapitalisierung"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'import matplotlib.pyplot as plt\nimport pandas as pd\n\nplt.rcParams.update(\n    {\n        \"font.family\": \"sans-serif\",\n        \"font.size\": 10,\n        \"axes.edgecolor\": \"#E6E9EF\",\n        \"axes.labelcolor\": \"#31333F\",\n        \"axes.spines.top\": False,\n        \"axes.spines.right\": False,\n        \"axes.grid\": True,\n        \"axes.axisbelow\": True,\n        \"grid.color\": \"#E6E9EF\",\n        \"xtick.color\": \"#31333F\",\n        \"ytick.color\": \"#31333F\",\n    }\n)\n\ndf = (\n    dataset.groupby(\"Sektor\", as_index=False)[\"Marktkapitalisierung\"]\n    .sum()\n    .assign(Mrd=lambda d: d[\"Marktkapitalisierung\"] / 1e9)\n    .sort_values(\"Mrd\")\n)\nfig, ax = plt.subplots(figsize=(6, 4))\nax.barh(df[\"Sektor\"], df[\"Mrd\"], color=\"#0068C9\")\nax.set_title(\"Marktkap. nach Sektor, Mrd. USD (Python)\", loc=\"left\", fontweight=\"bold\", color=\"#31333F\")\nax.grid(axis=\"y\", visible=False)\nax.locator_params(axis=\"x\", nbins=5)\nax.xaxis.set_major_formatter(lambda v, _: f\"{v:,.0f}\")\nfig.tight_layout()\nplt.show()\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Python'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

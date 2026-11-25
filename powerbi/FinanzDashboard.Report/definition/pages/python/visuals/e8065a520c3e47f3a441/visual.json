@@ -1,0 +1,74 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "e8065a520c3e47f3a441",
+  "position": {
+    "x": 24,
+    "y": 72,
+    "z": 1000,
+    "width": 616,
+    "height": 310,
+    "tabOrder": 1000
+  },
+  "visual": {
+    "visualType": "pythonVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Datum"
+                }
+              },
+              "queryRef": "SP500.Datum",
+              "nativeQueryRef": "Datum"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Index"
+                }
+              },
+              "queryRef": "SP500.Index",
+              "nativeQueryRef": "Index"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'import matplotlib.pyplot as plt\nimport pandas as pd\n\nplt.rcParams.update(\n    {\n        \"font.family\": \"sans-serif\",\n        \"font.size\": 10,\n        \"axes.edgecolor\": \"#E6E9EF\",\n        \"axes.labelcolor\": \"#31333F\",\n        \"axes.spines.top\": False,\n        \"axes.spines.right\": False,\n        \"axes.grid\": True,\n        \"axes.axisbelow\": True,\n        \"grid.color\": \"#E6E9EF\",\n        \"xtick.color\": \"#31333F\",\n        \"ytick.color\": \"#31333F\",\n    }\n)\n\ndf = dataset.assign(Datum=lambda d: pd.to_datetime(d[\"Datum\"])).sort_values(\"Datum\")\nfig, ax = plt.subplots(figsize=(8, 3.5))\nax.fill_between(df[\"Datum\"], df[\"Index\"], color=\"#0068C9\", alpha=0.85, linewidth=0)\nax.set_title(\"Indexverlauf (Python)\", loc=\"left\", fontweight=\"bold\", color=\"#31333F\")\nax.yaxis.set_major_formatter(lambda v, _: f\"{v:,.0f}\")\nfig.tight_layout()\nplt.show()\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Python'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

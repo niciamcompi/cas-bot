@@ -1,29 +1,29 @@
 table Unternehmen
-	lineageTag: d8e7bfb4-1ccb-4b8e-a955-2022dcd16265
+	lineageTag: 04010ce7-e9a3-46df-a8d3-1bdb64faeea2
 
 	measure 'Anzahl Unternehmen' =
 			COUNTROWS(Unternehmen)
 		formatString: #,##0
-		lineageTag: 2c8a5324-c410-40b7-80a7-7c942b5181ec
+		lineageTag: e19aba77-40f2-4e16-9de3-f1a73da23500
 
 	measure 'Marktkap. Total' =
 			DIVIDE(SUM(Unternehmen[Marktkapitalisierung]), 1e9)
 		formatString: #,##0
-		lineageTag: bd240db4-7756-4009-8a09-478c36a7cff3
+		lineageTag: 394e19fb-1804-449b-984b-faff2bb7f89f
 
 	measure 'Median KGV' =
 			MEDIAN(Unternehmen[KGV])
 		formatString: 0.0
-		lineageTag: 0eb135ce-d570-41d4-b651-5418e9d596e3
+		lineageTag: 79479641-0a1a-46b3-b82b-2be261c209b6
 
 	measure 'Ø Dividendenrendite' =
 			AVERAGE(Unternehmen[Dividendenrendite])
 		formatString: 0.00%
-		lineageTag: 1bf4b409-b5c0-43f2-8270-de6d447502b4
+		lineageTag: fb414bc9-55dd-450b-888e-e482e84c684c
 
 	column Symbol
 		dataType: string
-		lineageTag: afa16f56-58c6-46ab-93cd-ad8833f017c2
+		lineageTag: d2e24f49-a179-4891-acdf-f3af7a98f791
 		summarizeBy: none
 		sourceColumn: Symbol
 
@@ -31,7 +31,7 @@ table Unternehmen
 
 	column Name
 		dataType: string
-		lineageTag: fd37338a-8bbd-4258-9173-5a2a6c244619
+		lineageTag: 405d3b69-ad40-4662-829f-d9e5fb800224
 		summarizeBy: none
 		sourceColumn: Name
 
@@ -39,7 +39,7 @@ table Unternehmen
 
 	column Branche
 		dataType: string
-		lineageTag: 96bab4ae-3f28-45c9-b6b6-930b59876598
+		lineageTag: 07520549-b612-4f7e-aab0-5e725dde8137
 		summarizeBy: none
 		sourceColumn: Branche
 
@@ -47,7 +47,7 @@ table Unternehmen
 
 	column Sektor
 		dataType: string
-		lineageTag: 3a3ab927-dead-40d6-bdd1-f2d8e1a8599b
+		lineageTag: 29b095c6-7197-4bea-ab72-d9bd3cd427fc
 		summarizeBy: none
 		sourceColumn: Sektor
 
@@ -56,7 +56,7 @@ table Unternehmen
 	column Kurs
 		dataType: double
 		formatString: #,##0.00
-		lineageTag: 0de53603-d389-413b-bde0-1a00234cad53
+		lineageTag: 569f0ec0-9c91-44b3-af4b-f155db0a9433
 		summarizeBy: none
 		sourceColumn: Kurs
 
@@ -65,7 +65,7 @@ table Unternehmen
 	column KGV
 		dataType: double
 		formatString: 0.0
-		lineageTag: 40647599-0953-463a-81f7-d91cf6e2db35
+		lineageTag: 2b688a67-c9dd-4b37-957e-92dea8fcad2b
 		summarizeBy: none
 		sourceColumn: KGV
 
@@ -74,7 +74,7 @@ table Unternehmen
 	column Dividendenrendite
 		dataType: double
 		formatString: 0.00%
-		lineageTag: 082477a7-0fbc-4a1c-94c1-f0851011946e
+		lineageTag: acabb5eb-d3c2-47ed-aeeb-d859111fee21
 		summarizeBy: none
 		sourceColumn: Dividendenrendite
 
@@ -83,7 +83,7 @@ table Unternehmen
 	column Marktkapitalisierung
 		dataType: double
 		formatString: #,##0
-		lineageTag: 7137632b-1409-4914-8bbd-b7f688548ee5
+		lineageTag: f705e9dd-3fc1-4e5f-88bc-766a16780755
 		summarizeBy: sum
 		sourceColumn: Marktkapitalisierung
 
@@ -92,7 +92,7 @@ table Unternehmen
 	column EBITDA
 		dataType: double
 		formatString: #,##0
-		lineageTag: 2aec3ad5-7178-4e5f-820d-d15ec2c772a2
+		lineageTag: 6acfd371-7e07-4e86-8a7c-618c79b0d9ba
 		summarizeBy: sum
 		sourceColumn: EBITDA
 
