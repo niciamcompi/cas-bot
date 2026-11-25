@@ -1,0 +1,74 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "d93e177c7f75492dbc43",
+  "position": {
+    "x": 24,
+    "y": 72,
+    "z": 1000,
+    "width": 616,
+    "height": 310,
+    "tabOrder": 1000
+  },
+  "visual": {
+    "visualType": "scriptVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Datum"
+                }
+              },
+              "queryRef": "SP500.Datum",
+              "nativeQueryRef": "Datum"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Index"
+                }
+              },
+              "queryRef": "SP500.Index",
+              "nativeQueryRef": "Index"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'library(dplyr)\nlibrary(ggplot2)\nlibrary(tidyr)\n\ntheme_set(\n  theme_minimal(base_size = 11) +\n    theme(\n      plot.title = element_text(face = \"bold\", colour = \"#31333F\"),\n      plot.subtitle = element_text(colour = \"#808495\"),\n      text = element_text(colour = \"#31333F\"),\n      panel.grid.minor = element_blank(),\n      panel.grid.major = element_line(colour = \"#E6E9EF\"),\n      legend.position = \"bottom\"\n    )\n)\n\n# Verteilung der Monatsrenditen pro Jahrzehnt\np <- dataset |>\n  mutate(datum = as.Date(substr(as.character(Datum), 1, 10))) |>\n  arrange(datum) |>\n  mutate(\n    rendite = Index / lag(Index) - 1,\n    jahrzehnt = paste0(floor(as.integer(format(datum, \"%Y\")) / 10) * 10, \"er\")\n  ) |>\n  drop_na(rendite) |>\n  ggplot(aes(jahrzehnt, rendite)) +\n  geom_violin(fill = \"#83C9FF\", colour = NA, alpha = 0.7) +\n  geom_jitter(width = 0.12, size = 0.6, alpha = 0.35, colour = \"#0068C9\") +\n  geom_boxplot(width = 0.12, outlier.shape = NA, fill = \"white\") +\n  geom_hline(yintercept = 0, colour = \"#FF2B2B\", linetype = \"dashed\") +\n  scale_y_continuous(labels = scales::percent) +\n  labs(\n    title = \"Monatsrenditen pro Jahrzehnt\",\n    subtitle = \"Violin + Boxplot + Einzelwerte\",\n    x = NULL,\n    y = NULL\n  )\n\nprint(p)\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'R'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

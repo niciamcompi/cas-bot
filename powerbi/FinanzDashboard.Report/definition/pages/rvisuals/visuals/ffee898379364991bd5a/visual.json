@@ -1,0 +1,88 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ffee898379364991bd5a",
+  "position": {
+    "x": 656,
+    "y": 398,
+    "z": 4000,
+    "width": 600,
+    "height": 310,
+    "tabOrder": 4000
+  },
+  "visual": {
+    "visualType": "scriptVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "Symbol"
+                }
+              },
+              "queryRef": "Unternehmen.Symbol",
+              "nativeQueryRef": "Symbol"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "Sektor"
+                }
+              },
+              "queryRef": "Unternehmen.Sektor",
+              "nativeQueryRef": "Sektor"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Unternehmen"
+                    }
+                  },
+                  "Property": "KGV"
+                }
+              },
+              "queryRef": "Unternehmen.KGV",
+              "nativeQueryRef": "KGV"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'library(dplyr)\nlibrary(ggplot2)\nlibrary(tidyr)\n\ntheme_set(\n  theme_minimal(base_size = 11) +\n    theme(\n      plot.title = element_text(face = \"bold\", colour = \"#31333F\"),\n      plot.subtitle = element_text(colour = \"#808495\"),\n      text = element_text(colour = \"#31333F\"),\n      panel.grid.minor = element_blank(),\n      panel.grid.major = element_line(colour = \"#E6E9EF\"),\n      legend.position = \"bottom\"\n    )\n)\n\n# KGV-Verteilung pro Sektor als Small Multiples (log. Skala)\np <- dataset |>\n  filter(KGV > 0, Sektor != \"Unbekannt\") |>\n  mutate(Sektor = reorder(Sektor, KGV, FUN = median)) |>\n  ggplot(aes(KGV)) +\n  geom_density(fill = \"#83C9FF\", colour = \"#0068C9\", alpha = 0.6) +\n  geom_vline(\n    data = \\(d) summarise(d, median_kgv = median(KGV), .by = Sektor),\n    aes(xintercept = median_kgv),\n    colour = \"#FF2B2B\"\n  ) +\n  scale_x_log10(breaks = c(5, 10, 20, 50, 100)) +\n  facet_wrap(vars(Sektor), ncol = 4) +\n  labs(\n    title = \"KGV-Verteilung pro Sektor\",\n    subtitle = \"Dichte auf log. Skala, rote Linie = Median\",\n    x = \"KGV\",\n    y = NULL\n  ) +\n  theme(\n    axis.text.y = element_blank(),\n    strip.text = element_text(face = \"bold\", size = 8)\n  )\n\nprint(p)\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'R'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

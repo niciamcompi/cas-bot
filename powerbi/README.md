@@ -27,5 +27,11 @@ Power-BI-Projekt (`.pbip`, PBIR + TMDL) mit S&P-500-Daten im Streamlit-Look.
   Streamlit-Stil. Voraussetzung: lokales Python mit `pandas` und
   `matplotlib`, in Power BI unter *Optionen > Python-Skripterstellung*
   hinterlegt. Beim Öffnen Python-Visuals aktivieren.
+- **R-Visuals** (ggplot2), Charts ohne natives Power-BI-Pendant:
+  Violin-/Boxplot der Monatsrenditen pro Jahrzehnt, CAPE vs.
+  10-Jahres-Rendite mit LOESS-Kurve und 2D-Dichte, Kalender-Heatmap,
+  KGV-Dichten pro Sektor als Small Multiples. Voraussetzung: R >= 4.1
+  mit `dplyr`, `ggplot2`, `tidyr`, `scales`, in Power BI unter
+  *Optionen > R-Skripterstellung* hinterlegt.
 
 Die Streamlit-App dazu liegt in `../finanz_streamlit/`.

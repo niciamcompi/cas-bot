@@ -1,0 +1,74 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "4c844112bb7149f890b3",
+  "position": {
+    "x": 24,
+    "y": 398,
+    "z": 3000,
+    "width": 616,
+    "height": 310,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "scriptVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Datum"
+                }
+              },
+              "queryRef": "SP500.Datum",
+              "nativeQueryRef": "Datum"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Index"
+                }
+              },
+              "queryRef": "SP500.Index",
+              "nativeQueryRef": "Index"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'library(dplyr)\nlibrary(ggplot2)\nlibrary(tidyr)\n\ntheme_set(\n  theme_minimal(base_size = 11) +\n    theme(\n      plot.title = element_text(face = \"bold\", colour = \"#31333F\"),\n      plot.subtitle = element_text(colour = \"#808495\"),\n      text = element_text(colour = \"#31333F\"),\n      panel.grid.minor = element_blank(),\n      panel.grid.major = element_line(colour = \"#E6E9EF\"),\n      legend.position = \"bottom\"\n    )\n)\n\n# Kalender-Heatmap der Monatsrenditen\np <- dataset |>\n  mutate(datum = as.Date(substr(as.character(Datum), 1, 10))) |>\n  arrange(datum) |>\n  mutate(\n    rendite = Index / lag(Index) - 1,\n    jahr = as.integer(format(datum, \"%Y\")),\n    monat = factor(format(datum, \"%m\"), labels = month.abb)\n  ) |>\n  filter(jahr >= max(jahr) - 29) |>\n  drop_na(rendite) |>\n  ggplot(aes(monat, jahr, fill = rendite)) +\n  geom_tile(colour = \"white\", linewidth = 0.4) +\n  scale_fill_gradient2(\n    low = \"#FF2B2B\",\n    mid = \"#F0F2F6\",\n    high = \"#0068C9\",\n    midpoint = 0,\n    limits = c(-0.1, 0.1),\n    oob = scales::squish,\n    labels = scales::percent\n  ) +\n  scale_y_reverse(breaks = seq(1990, 2030, 5), expand = c(0, 0)) +\n  labs(\n    title = \"Kalender-Heatmap: Monatsrenditen\",\n    subtitle = \"Letzte 30 Jahre, Farbskala bei \\u00b110 % gekappt\",\n    x = NULL,\n    y = NULL,\n    fill = NULL\n  ) +\n  theme(panel.grid = element_blank(), legend.key.width = unit(1.5, \"cm\"))\n\nprint(p)\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'R'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

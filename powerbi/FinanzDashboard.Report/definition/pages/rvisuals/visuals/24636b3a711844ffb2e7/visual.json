@@ -1,0 +1,88 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "24636b3a711844ffb2e7",
+  "position": {
+    "x": 656,
+    "y": 72,
+    "z": 2000,
+    "width": 600,
+    "height": 310,
+    "tabOrder": 2000
+  },
+  "visual": {
+    "visualType": "scriptVisual",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Datum"
+                }
+              },
+              "queryRef": "SP500.Datum",
+              "nativeQueryRef": "Datum"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "Index"
+                }
+              },
+              "queryRef": "SP500.Index",
+              "nativeQueryRef": "Index"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "SP500"
+                    }
+                  },
+                  "Property": "KGV10"
+                }
+              },
+              "queryRef": "SP500.KGV10",
+              "nativeQueryRef": "KGV10"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "script": [
+        {
+          "properties": {
+            "source": {
+              "expr": {
+                "Literal": {
+                  "Value": "'library(dplyr)\nlibrary(ggplot2)\nlibrary(tidyr)\n\ntheme_set(\n  theme_minimal(base_size = 11) +\n    theme(\n      plot.title = element_text(face = \"bold\", colour = \"#31333F\"),\n      plot.subtitle = element_text(colour = \"#808495\"),\n      text = element_text(colour = \"#31333F\"),\n      panel.grid.minor = element_blank(),\n      panel.grid.major = element_line(colour = \"#E6E9EF\"),\n      legend.position = \"bottom\"\n    )\n)\n\n# Bewertung (CAPE) vs. Kursrendite der folgenden 10 Jahre mit LOESS-Kurve\np <- dataset |>\n  mutate(datum = as.Date(substr(as.character(Datum), 1, 10))) |>\n  arrange(datum) |>\n  mutate(\n    rendite_10j = (lead(Index, 120) / Index)^(1 / 10) - 1,\n    jahrzehnt = factor(floor(as.integer(format(datum, \"%Y\")) / 10) * 10)\n  ) |>\n  drop_na(rendite_10j, KGV10) |>\n  ggplot(aes(KGV10, rendite_10j)) +\n  geom_density_2d(colour = \"#D5DAE5\") +\n  geom_point(aes(colour = jahrzehnt), size = 1, alpha = 0.7) +\n  geom_smooth(method = \"loess\", colour = \"#FF2B2B\", fill = \"#FFABAB\") +\n  scale_colour_viridis_d(option = \"C\", end = 0.9) +\n  scale_y_continuous(labels = scales::percent) +\n  labs(\n    title = \"Hohe Bewertung, tiefere Zukunftsrendite?\",\n    subtitle = \"CAPE vs. annualisierte Kursrendite der n\\u00e4chsten 10 Jahre\",\n    x = \"Shiller-KGV (CAPE)\",\n    y = NULL,\n    colour = \"Jahrzehnt\"\n  ) +\n  guides(colour = guide_legend(nrow = 1))\n\nprint(p)\n'"
+                }
+              }
+            },
+            "provider": {
+              "expr": {
+                "Literal": {
+                  "Value": "'R'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

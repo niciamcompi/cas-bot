@@ -3,7 +3,8 @@
   "pageOrder": [
     "markt",
     "unternehmen",
-    "python"
+    "python",
+    "rvisuals"
   ],
   "activePageName": "markt"
 }
