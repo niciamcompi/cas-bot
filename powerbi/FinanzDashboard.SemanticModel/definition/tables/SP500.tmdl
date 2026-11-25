@@ -1,0 +1,119 @@
+table SP500
+	lineageTag: 007b1065-e4e0-4c35-8897-23728eea55a5
+
+	measure Indexstand =
+			VAR d = MAX(SP500[Datum])
+			RETURN CALCULATE(SUM(SP500[Index]), SP500[Datum] = d)
+		formatString: #,##0
+		lineageTag: 9a997b96-3705-4cc8-945e-e0df1d5fcc1d
+
+	measure 'Rendite 12M' =
+			VAR d = MAX(SP500[Datum])
+			VAR jetzt = CALCULATE(SUM(SP500[Index]), ALL(SP500), SP500[Datum] = d)
+			VAR vorher = CALCULATE(SUM(SP500[Index]), ALL(SP500), SP500[Datum] = EDATE(d, -12))
+			RETURN DIVIDE(jetzt, vorher) - 1
+		formatString: 0.0%
+		lineageTag: 3e38949a-0c16-4065-b0a8-83692e86567d
+
+	measure Jahresrendite =
+			VAR j = MAX(SP500[Jahr])
+			VAR d_ende = CALCULATE(MAX(SP500[Datum]), ALL(SP500), SP500[Jahr] = j)
+			VAR d_vor = CALCULATE(MAX(SP500[Datum]), ALL(SP500), SP500[Jahr] = j - 1)
+			VAR ende = CALCULATE(SUM(SP500[Index]), ALL(SP500), SP500[Datum] = d_ende)
+			VAR vor = CALCULATE(SUM(SP500[Index]), ALL(SP500), SP500[Datum] = d_vor)
+			RETURN IF(NOT ISBLANK(vor), DIVIDE(ende, vor) - 1)
+		formatString: 0.0%
+		lineageTag: acaac096-7e1d-4418-9ecd-0d07c94afac9
+
+	measure 'Zinssatz 10J' =
+			AVERAGE(SP500[Zins 10J])
+		formatString: 0.00
+		lineageTag: 524920f3-a2cd-4684-9c58-17f160e0c085
+
+	measure 'Shiller KGV' =
+			LASTNONBLANKVALUE(SP500[Datum], AVERAGE(SP500[KGV10]))
+		formatString: 0.0
+		lineageTag: 6c2eb7f5-c529-41c6-be1b-3ecc4506008b
+
+	column Datum
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 77f2b37a-9f07-48b9-b4a3-9b4aa80320dc
+		summarizeBy: none
+		sourceColumn: Datum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Index
+		dataType: double
+		formatString: #,##0.00
+		lineageTag: 4579e798-7c3f-47ad-a07b-f22e082892c2
+		summarizeBy: none
+		sourceColumn: Index
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dividende
+		dataType: double
+		formatString: #,##0.00
+		lineageTag: 03582755-d0cf-4d99-bd53-e44076e98e88
+		summarizeBy: none
+		sourceColumn: Dividende
+
+		annotation SummarizationSetBy = Automatic
+
+	column Gewinn
+		dataType: double
+		formatString: #,##0.00
+		lineageTag: fa811d68-2ed0-44ed-ba6a-1419ed8008fb
+		summarizeBy: none
+		sourceColumn: Gewinn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Zins 10J'
+		dataType: double
+		formatString: 0.00
+		lineageTag: 7e35e22a-691e-45f5-95b8-b00b7598cf56
+		summarizeBy: none
+		sourceColumn: Zins 10J
+
+		annotation SummarizationSetBy = Automatic
+
+	column KGV10
+		dataType: double
+		formatString: 0.0
+		lineageTag: 4f2b6e06-4f57-4c89-a6c5-46ef7f5a1b9c
+		summarizeBy: none
+		sourceColumn: KGV10
+
+		annotation SummarizationSetBy = Automatic
+
+	column Jahr
+		dataType: int64
+		formatString: 0
+		lineageTag: b3e9bccf-1d37-48a3-8cf2-977cb1780b87
+		summarizeBy: none
+		sourceColumn: Jahr
+
+		annotation SummarizationSetBy = Automatic
+
+	partition SP500 = m
+		mode: import
+		source =
+				let
+				    Quelle = Csv.Document(
+				        Web.Contents("https://raw.githubusercontent.com/datasets/s-and-p-500/main/data/data.csv"),
+				        [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				    ),
+				    Header = Table.PromoteHeaders(Quelle, [PromoteAllScalars = true]),
+				    Auswahl = Table.SelectColumns(Header, {"Date", "SP500", "Dividend", "Earnings", "Long Interest Rate", "PE10"}),
+				    Umbenannt = Table.RenameColumns(Auswahl, {{"Date", "Datum"}, {"SP500", "Index"}, {"Dividend", "Dividende"}, {"Earnings", "Gewinn"}, {"Long Interest Rate", "Zins 10J"}, {"PE10", "KGV10"}}),
+				    Typen = Table.TransformColumnTypes(Umbenannt, {{"Datum", type date}, {"Index", type number}, {"Dividende", type number}, {"Gewinn", type number}, {"Zins 10J", type number}, {"KGV10", type number}}, "en-US"),
+				    OhneNullen = Table.ReplaceValue(Typen, 0, null, Replacer.ReplaceValue, {"Dividende", "Gewinn", "Zins 10J", "KGV10"}),
+				    Ab1950 = Table.SelectRows(OhneNullen, each [Datum] >= #date(1950, 1, 1)),
+				    MitJahr = Table.AddColumn(Ab1950, "Jahr", each Date.Year([Datum]), Int64.Type)
+				in
+				    MitJahr
+
+	annotation PBI_ResultType = Table

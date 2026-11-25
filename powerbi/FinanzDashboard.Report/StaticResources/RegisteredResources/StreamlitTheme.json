@@ -1,0 +1,77 @@
+{
+  "name": "Streamlit",
+  "dataColors": [
+    "#0068C9",
+    "#83C9FF",
+    "#FF2B2B",
+    "#FFABAB",
+    "#29B09D",
+    "#7DEFA1",
+    "#FF8700",
+    "#FFD16A",
+    "#6D3FC0",
+    "#D5DAE5"
+  ],
+  "foreground": "#31333F",
+  "background": "#FFFFFF",
+  "tableAccent": "#FF4B4B",
+  "good": "#29B09D",
+  "bad": "#FF2B2B",
+  "neutral": "#FFD16A",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 13,
+      "color": "#31333F"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#31333F"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 28,
+      "color": "#31333F"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [
+          {
+            "show": true,
+            "color": {
+              "solid": {
+                "color": "#FFFFFF"
+              }
+            }
+          }
+        ],
+        "valueAxis": [
+          {
+            "gridlineColor": {
+              "solid": {
+                "color": "#E6E9EF"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "page": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#F0F2F6"
+              }
+            },
+            "transparency": 0
+          }
+        ]
+      }
+    }
+  }
+}

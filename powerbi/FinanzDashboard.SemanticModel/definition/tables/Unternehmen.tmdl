@@ -1,0 +1,127 @@
+table Unternehmen
+	lineageTag: d8e7bfb4-1ccb-4b8e-a955-2022dcd16265
+
+	measure 'Anzahl Unternehmen' =
+			COUNTROWS(Unternehmen)
+		formatString: #,##0
+		lineageTag: 2c8a5324-c410-40b7-80a7-7c942b5181ec
+
+	measure 'Marktkap. Total' =
+			DIVIDE(SUM(Unternehmen[Marktkapitalisierung]), 1e9)
+		formatString: #,##0
+		lineageTag: bd240db4-7756-4009-8a09-478c36a7cff3
+
+	measure 'Median KGV' =
+			MEDIAN(Unternehmen[KGV])
+		formatString: 0.0
+		lineageTag: 0eb135ce-d570-41d4-b651-5418e9d596e3
+
+	measure 'Ø Dividendenrendite' =
+			AVERAGE(Unternehmen[Dividendenrendite])
+		formatString: 0.00%
+		lineageTag: 1bf4b409-b5c0-43f2-8270-de6d447502b4
+
+	column Symbol
+		dataType: string
+		lineageTag: afa16f56-58c6-46ab-93cd-ad8833f017c2
+		summarizeBy: none
+		sourceColumn: Symbol
+
+		annotation SummarizationSetBy = Automatic
+
+	column Name
+		dataType: string
+		lineageTag: fd37338a-8bbd-4258-9173-5a2a6c244619
+		summarizeBy: none
+		sourceColumn: Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column Branche
+		dataType: string
+		lineageTag: 96bab4ae-3f28-45c9-b6b6-930b59876598
+		summarizeBy: none
+		sourceColumn: Branche
+
+		annotation SummarizationSetBy = Automatic
+
+	column Sektor
+		dataType: string
+		lineageTag: 3a3ab927-dead-40d6-bdd1-f2d8e1a8599b
+		summarizeBy: none
+		sourceColumn: Sektor
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kurs
+		dataType: double
+		formatString: #,##0.00
+		lineageTag: 0de53603-d389-413b-bde0-1a00234cad53
+		summarizeBy: none
+		sourceColumn: Kurs
+
+		annotation SummarizationSetBy = Automatic
+
+	column KGV
+		dataType: double
+		formatString: 0.0
+		lineageTag: 40647599-0953-463a-81f7-d91cf6e2db35
+		summarizeBy: none
+		sourceColumn: KGV
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dividendenrendite
+		dataType: double
+		formatString: 0.00%
+		lineageTag: 082477a7-0fbc-4a1c-94c1-f0851011946e
+		summarizeBy: none
+		sourceColumn: Dividendenrendite
+
+		annotation SummarizationSetBy = Automatic
+
+	column Marktkapitalisierung
+		dataType: double
+		formatString: #,##0
+		lineageTag: 7137632b-1409-4914-8bbd-b7f688548ee5
+		summarizeBy: sum
+		sourceColumn: Marktkapitalisierung
+
+		annotation SummarizationSetBy = Automatic
+
+	column EBITDA
+		dataType: double
+		formatString: #,##0
+		lineageTag: 2aec3ad5-7178-4e5f-820d-d15ec2c772a2
+		summarizeBy: sum
+		sourceColumn: EBITDA
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Unternehmen = m
+		mode: import
+		source =
+				let
+				    Quelle = Csv.Document(
+				        Web.Contents("https://raw.githubusercontent.com/datasets/s-and-p-500-companies-financials/main/data/constituents-financials.csv"),
+				        [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				    ),
+				    Header = Table.PromoteHeaders(Quelle, [PromoteAllScalars = true]),
+				    Auswahl = Table.SelectColumns(Header, {"Symbol", "Name", "Sector", "Price", "Price/Earnings", "Dividend Yield", "Market Cap", "EBITDA"}),
+				    Umbenannt = Table.RenameColumns(Auswahl, {{"Sector", "Branche"}, {"Price", "Kurs"}, {"Price/Earnings", "KGV"}, {"Dividend Yield", "Dividendenrendite"}, {"Market Cap", "Marktkapitalisierung"}}),
+				    Typen = Table.TransformColumnTypes(Umbenannt, {{"Symbol", type text}, {"Name", type text}, {"Branche", type text}, {"Kurs", type number}, {"KGV", type number}, {"Dividendenrendite", type number}, {"Marktkapitalisierung", type number}, {"EBITDA", type number}}, "en-US"),
+				    Gics = Table.PromoteHeaders(
+				        Csv.Document(
+				            Web.Contents("https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv"),
+				            [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+				        ),
+				        [PromoteAllScalars = true]
+				    ),
+				    Verknuepft = Table.NestedJoin(Typen, {"Symbol"}, Gics, {"Symbol"}, "Gics", JoinKind.LeftOuter),
+				    MitSektor = Table.ExpandTableColumn(Verknuepft, "Gics", {"GICS Sector"}, {"Sektor"}),
+				    OhneLuecken = Table.ReplaceValue(MitSektor, null, "Unbekannt", Replacer.ReplaceValue, {"Sektor"}),
+				    Final = Table.TransformColumnTypes(OhneLuecken, {{"Sektor", type text}})
+				in
+				    Final
+
+	annotation PBI_ResultType = Table
